@@ -28,7 +28,7 @@ __C.PRE_GCC_MODEL = 'path to model' # path to model
 __C.RESUME = False # contine training
 __C.RESUME_PATH = './exp/04-25_09-19_SHHB_VGG_1e-05/latest_state.pth' # 
 
-__C.GPU_ID = [0,1] # sigle gpu: [0], [1] ...; multi gpus: [0,1]
+__C.GPU_ID = [0] # sigle gpu: [0], [1] ...; multi gpus: [0,1]
 
 # learning rate settings
 __C.LR = 1e-5 # learning rate
@@ -58,7 +58,7 @@ if __C.DATASET == 'UCF50':
 if __C.DATASET == 'GCC':
 	__C.EXP_NAME += '_' + __C.VAL_MODE	
 
-__C.EXP_PATH = './exp' # the path of logs, checkpoints, and current codes
+__C.EXP_PATH = '/output/tf_dir' # the path of logs, checkpoints, and current codes
 
 
 #------------------------------VAL------------------------
