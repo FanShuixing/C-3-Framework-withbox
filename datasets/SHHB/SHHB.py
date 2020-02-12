@@ -39,8 +39,6 @@ class SHHB(data.Dataset):
             img = self.img_transform(img)
         if self.gt_transform is not None:
             den = self.gt_transform(den)
-        if den.shape[-1] != 1280:
-            return None
         return img, den
 
     def __len__(self):
@@ -53,7 +51,8 @@ class SHHB(data.Dataset):
         img = img.resize((1280, 720))
         # den = sio.loadmat(os.path.join(self.gt_path,os.path.splitext(fname)[0] + '.mat'))
         # den = den['map']
-        den = pd.read_csv(os.path.join(self.gt_path, os.path.splitext(fname)[0] + '.csv'), sep=',', header=None).values
+        # den = pd.read_csv(os.path.join(self.gt_path, os.path.splitext(fname)[0] + '.csv'), sep=',', header=None).values
+        den = np.load(os.path.join(self.gt_path, os.path.splitext(fname)[0] + '.npy'))
 
         den = den.astype(np.float32, copy=False)
         den = Image.fromarray(den)
