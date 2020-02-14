@@ -20,9 +20,9 @@ python detection_to_mat.py
     |--xxx.jpg
     |--xxx.jpg
 |--train_label
-    |--xxx.mat
+    |--xxx.npy
 |--val_label
-    |--xxx.mat
+    |--xxx.npy
 |--train.txt
 |--val.txt
 ```
