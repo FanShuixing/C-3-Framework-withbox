@@ -16,6 +16,7 @@ import re, csv, json
 import argparse
 import cv2
 from skimage import io
+from tqdm import tqdm
 
 torch.cuda.set_device(0)
 torch.backends.cudnn.benchmark = True
@@ -65,18 +66,17 @@ def test(args, file_list, model_path):
     writer.writerow(['image_name', 'predict_num', 'gt_num'])
     # 增加json的输出
     info_dict = {}
-    for filename in file_list:
-        print(filename)
-        filename_no_ext = re.sub('.jpg', '', filename)
-        imgname = os.path.join(args.root_dir, filename_no_ext + '.jpg')
+    for filename in tqdm(file_list):
+        imgname = os.path.join(args.root_dir, 'images',filename + '.jpg')
         if args.have_gt:
-            denname = args.root_dir + '/val_label/' + filename_no_ext + '.csv'
-            den = pd.read_csv(denname, sep=',', header=None).values
+            denname = args.root_dir + '/npy_sigma8.0/' + filename + '.npy'
+            den=np.load(denname)
             den = den.astype(np.float32, copy=False)
             gt = np.sum(den)
-            sio.savemat(exp_name + '/gt/' + filename_no_ext + '.mat', {'data': den})
+            sio.savemat(exp_name + '/gt/' + filename + '.mat', {'data': den})
 
         img = Image.open(imgname)
+        img=img.resize((args.image_shape[1],args.image_shape[0]))
 
         if img.mode == 'L':
             img = img.convert('RGB')
@@ -87,7 +87,7 @@ def test(args, file_list, model_path):
             img = Variable(img[None, :, :, :]).cuda()
             pred_map = net.test_forward(img)
 
-        sio.savemat(exp_name + '/pred/' + filename_no_ext + '.mat', {'data': pred_map.squeeze().cpu().numpy() / 100.})
+        sio.savemat(exp_name + '/pred/' + filename + '.mat', {'data': pred_map.squeeze().cpu().numpy() / 100.})
 
         pred_map = pred_map.cpu().data.numpy()[0, 0, :, :]
 
@@ -104,35 +104,35 @@ def test(args, file_list, model_path):
             den_frame.spines['bottom'].set_visible(False)
             den_frame.spines['left'].set_visible(False)
             den_frame.spines['right'].set_visible(False)
-            plt.savefig(exp_name + '/' + filename_no_ext + '_gt_' + str(round(gt)) + '.png', \
+            plt.savefig(exp_name + '/' + filename + '_gt_' + str(round(gt)) + '.png', \
                         bbox_inches='tight', pad_inches=0, dpi=150)
 
             plt.close()
 
-        # sio.savemat(exp_name+'/'+filename_no_ext+'_gt_'+str(int(gt))+'.mat',{'data':den})
+        # sio.savemat(exp_name+'/'+filename+'_gt_'+str(int(gt))+'.mat',{'data':den})
 
         pred_frame = plt.gca()
         #         plt.imshow(img)
         #         tmp=cv2.imread(imgname)
         tmp = io.imread(imgname)
+        tmp=cv2.resize(tmp,(args.image_shape[1],args.image_shape[0]))
         plt.imshow(tmp)
         #         plt.imshow(pred_map, 'jet')
         plt.imshow(pred_map, alpha=0.75)
-        print(pred_map.shape)
-        io.imsave('/output/pred.jpg', pred_map * 255)
-        cv2.imwrite('/output/pred_cv2.jpg', pred_map * 255)
+#         io.imsave('/output/pred.jpg', pred_map * 255)
+#         cv2.imwrite('/output/pred_cv2.jpg', pred_map * 255)
         pred_frame.axes.get_yaxis().set_visible(False)
         pred_frame.axes.get_xaxis().set_visible(False)
         pred_frame.spines['top'].set_visible(False)
         pred_frame.spines['bottom'].set_visible(False)
         pred_frame.spines['left'].set_visible(False)
         pred_frame.spines['right'].set_visible(False)
-        plt.savefig(exp_name + '/' + filename_no_ext + '_pred_' + str(round(pred)) + '.png', \
+        plt.savefig(exp_name + '/' + filename + '_pred_' + str(round(pred)) + '.png', \
                     bbox_inches='tight', pad_inches=0, dpi=150)
 
         plt.close()
 
-        # sio.savemat(exp_name+'/'+filename_no_ext+'_pred_'+str(float(pred))+'.mat',{'data':pred_map})
+        # sio.savemat(exp_name+'/'+filename+'_pred_'+str(float(pred))+'.mat',{'data':pred_map})
         if args.have_gt:
             diff = den - pred_map
 
@@ -145,28 +145,29 @@ def test(args, file_list, model_path):
             diff_frame.spines['bottom'].set_visible(False)
             diff_frame.spines['left'].set_visible(False)
             diff_frame.spines['right'].set_visible(False)
-            plt.savefig(exp_name + '/' + filename_no_ext + '_diff.png', \
+            plt.savefig(exp_name + '/' + filename + '_diff.png', \
                         bbox_inches='tight', pad_inches=0, dpi=150)
 
             plt.close()
 
             writer.writerow([imgname, round(pred), round(gt)])
-            info_dict[filename_no_ext] = {'pred': str(round(pred)), 'gt': str(round(gt))}
+            info_dict[filename] = {'pred': str(round(pred)), 'gt': str(round(gt))}
         else:
             writer.writerow([imgname, round(pred)])
-            info_dict[filename_no_ext] = {'pred': str(round(pred))}
-        # sio.savemat(exp_name+'/'+filename_no_ext+'_diff.mat',{'data':diff})
+            info_dict[filename] = {'pred': str(round(pred))}
+        # sio.savemat(exp_name+'/'+filename+'_diff.mat',{'data':diff})
     with open(os.path.join(args.output_dir, 'final_json.json'), 'w+') as fr:
         json.dump(info_dict, fr)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root_dir", default='/output/a', help='root dir')
+    parser.add_argument("--root_dir", default='/input0', help='root dir')
     parser.add_argument("--model_path",
-                        default='/output/tf_dir/02-11_08-14_SHHB_Res101_SFCN_1e-05/all_ep_112_mae_1.3_mse_2.6.pth',
+                        default='/output/all_ep_99_mae_1.7_mse_7.5.pth',
                         help='model path for predict')
     parser.add_argument('--output_dir', default='/output/tf_dir', help='save output')
-    parser.add_argument('--have_gt', default=False)
+    parser.add_argument('--have_gt', default=True)
+    parser.add_argument('--image_shape', default=(576,768),help='the image shape when training')
     args = parser.parse_args()
     main(args)
