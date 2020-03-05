@@ -15,15 +15,13 @@ from config import cfg
 
 class SHHB(data.Dataset):
     def __init__(self, data_path, mode, main_transform=None, img_transform=None, gt_transform=None):
-        self.img_path = data_path + '/images'
+        self.root_dir=data_path
         if mode == 'train':
-            self.gt_path = data_path + '/npy_sigma8.0'
-            self.gt_txt = data_path + '/train.txt'
+            self.gt_csv=data_path+'train_crowd.csv'
         else:
-            self.gt_path = data_path + '/npy_sigma8.0'
-            self.gt_txt = data_path + '/val.txt'
-        with open(self.gt_txt) as fr:
-            self.data_files = [re.sub('.csv', '.jpg', filename.strip()) for filename in fr.readlines()]
+            self.gt_csv=data_path+'val_crowd.csv'
+        with open(self.gt_csv) as fr:
+            self.data_files=pd.read_csv(fr).values
 
         self.num_samples = len(self.data_files)
         self.main_transform = main_transform
@@ -45,14 +43,14 @@ class SHHB(data.Dataset):
         return self.num_samples
 
     def read_image_and_gt(self, fname):
-        img = Image.open(os.path.join(self.img_path, fname+'.jpg'))
+        img = Image.open(os.path.join(self.root_dir, fname[1]))
         if img.mode == 'L':
             img = img.convert('RGB')
         img = img.resize((768, 576))
         # den = sio.loadmat(os.path.join(self.gt_path,os.path.splitext(fname)[0] + '.mat'))
         # den = den['map']
         # den = pd.read_csv(os.path.join(self.gt_path, os.path.splitext(fname)[0] + '.csv'), sep=',', header=None).values
-        den = np.load(os.path.join(self.gt_path, fname + '.npy'))
+        den = np.load(os.path.join(self.root_dir, fname[0]))
 
         den = den.astype(np.float32, copy=False)
         den = Image.fromarray(den)
