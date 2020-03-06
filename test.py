@@ -44,8 +44,8 @@ pil_to_tensor = standard_transforms.ToTensor()
 
 
 def main(args):
-    with open(os.path.join(args.root_dir, 'val.txt')) as fr:
-        file_list = [each.strip() for each in fr.readlines()]
+    with open(os.path.join(args.root_dir, 'val_crowd.csv')) as fr:
+        file_list = pd.read_csv(fr).values
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
     test(args, file_list, args.model_path)
@@ -67,13 +67,14 @@ def test(args, file_list, model_path):
     # 增加json的输出
     info_dict = {}
     for filename in tqdm(file_list):
-        imgname = os.path.join(args.root_dir, 'images',filename + '.jpg')
+        name_no_suffix=filename[0].split('/')[-1].replace('.npy','')
+        imgname = os.path.join(args.root_dir,filename[1])
         if args.have_gt:
-            denname = args.root_dir + '/npy_sigma8.0/' + filename + '.npy'
+            denname = os.path.join(args.root_dir,filename[0])
             den=np.load(denname)
             den = den.astype(np.float32, copy=False)
             gt = np.sum(den)
-            sio.savemat(exp_name + '/gt/' + filename + '.mat', {'data': den})
+            sio.savemat(exp_name + '/gt/' + name_no_suffix + '.mat', {'data': den})
 
         img = Image.open(imgname)
         img=img.resize((args.image_shape[1],args.image_shape[0]))
@@ -87,7 +88,7 @@ def test(args, file_list, model_path):
             img = Variable(img[None, :, :, :]).cuda()
             pred_map = net.test_forward(img)
 
-        sio.savemat(exp_name + '/pred/' + filename + '.mat', {'data': pred_map.squeeze().cpu().numpy() / 100.})
+        sio.savemat(exp_name + '/pred/' + name_no_suffix + '.mat', {'data': pred_map.squeeze().cpu().numpy() / 100.})
 
         pred_map = pred_map.cpu().data.numpy()[0, 0, :, :]
 
@@ -104,7 +105,7 @@ def test(args, file_list, model_path):
             den_frame.spines['bottom'].set_visible(False)
             den_frame.spines['left'].set_visible(False)
             den_frame.spines['right'].set_visible(False)
-            plt.savefig(exp_name + '/' + filename + '_gt_' + str(round(gt)) + '.png', \
+            plt.savefig(exp_name + '/' + name_no_suffix + '_gt_' + str(round(gt)) + '.png', \
                         bbox_inches='tight', pad_inches=0, dpi=150)
 
             plt.close()
@@ -127,7 +128,7 @@ def test(args, file_list, model_path):
         pred_frame.spines['bottom'].set_visible(False)
         pred_frame.spines['left'].set_visible(False)
         pred_frame.spines['right'].set_visible(False)
-        plt.savefig(exp_name + '/' + filename + '_pred_' + str(round(pred)) + '.png', \
+        plt.savefig(exp_name + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '.png', \
                     bbox_inches='tight', pad_inches=0, dpi=150)
 
         plt.close()
@@ -145,16 +146,16 @@ def test(args, file_list, model_path):
             diff_frame.spines['bottom'].set_visible(False)
             diff_frame.spines['left'].set_visible(False)
             diff_frame.spines['right'].set_visible(False)
-            plt.savefig(exp_name + '/' + filename + '_diff.png', \
+            plt.savefig(exp_name + '/' + name_no_suffix + '_diff.png', \
                         bbox_inches='tight', pad_inches=0, dpi=150)
 
             plt.close()
 
             writer.writerow([imgname, round(pred), round(gt)])
-            info_dict[filename] = {'pred': str(round(pred)), 'gt': str(round(gt))}
+            info_dict[name_no_suffix] = {'pred': str(round(pred)), 'gt': str(round(gt))}
         else:
             writer.writerow([imgname, round(pred)])
-            info_dict[filename] = {'pred': str(round(pred))}
+            info_dict[name_no_suffix] = {'pred': str(round(pred))}
         # sio.savemat(exp_name+'/'+filename+'_diff.mat',{'data':diff})
     with open(os.path.join(args.output_dir, 'final_json.json'), 'w+') as fr:
         json.dump(info_dict, fr)
