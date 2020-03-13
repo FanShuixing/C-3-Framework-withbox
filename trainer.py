@@ -25,7 +25,8 @@ class Trainer():
         self.net = CrowdCounter(cfg.GPU_ID,self.net_name).cuda()
         self.optimizer = optim.Adam(self.net.CCN.parameters(), lr=cfg.LR, weight_decay=1e-4)
         # self.optimizer = optim.SGD(self.net.parameters(), cfg.LR, momentum=0.95,weight_decay=5e-4)
-        self.scheduler = StepLR(self.optimizer, step_size=cfg.NUM_EPOCH_LR_DECAY, gamma=cfg.LR_DECAY)          
+        # self.scheduler = StepLR(self.optimizer, step_size=cfg.NUM_EPOCH_LR_DECAY, gamma=cfg.LR_DECAY)
+        self.scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=10, verbose=False, threshold=0.0001, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08)          
 
         self.train_record = {'best_mae': 1e20, 'best_mse':1e20, 'best_model_name': ''}
         self.timer = {'iter time' : Timer(),'train time' : Timer(),'val time' : Timer()} 
@@ -57,12 +58,13 @@ class Trainer():
         # self.validate_V3()
         for epoch in range(self.epoch,cfg.MAX_EPOCH):
             self.epoch = epoch
-            if epoch > cfg.LR_DECAY_START:
-                self.scheduler.step()
+            # if epoch > cfg.LR_DECAY_STARE:
+            #     self.scheduler.step()
                 
             # training    
             self.timer['train time'].tic()
-            self.train()
+            train_loss=self.train()
+            self.scheduler.step(train_loss)
             self.timer['train time'].toc(average=False)
 
             print( 'train time: {:.2f}s'.format(self.timer['train time'].diff) )
@@ -101,7 +103,8 @@ class Trainer():
                 self.timer['iter time'].toc(average=False)
                 print( '[ep %d][it %d][loss %.4f][lr %.4f][%.2fs]' % \
                         (self.epoch + 1, i + 1, loss.item(), self.optimizer.param_groups[0]['lr']*10000, self.timer['iter time'].diff) )
-                print( '        [cnt: gt: %.1f pred: %.2f]' % (gt_map[0].sum().data/self.cfg_data.LOG_PARA, pred_map[0].sum().data/self.cfg_data.LOG_PARA) )           
+                print( '        [cnt: gt: %.1f pred: %.2f]' % (gt_map[0].sum().data/self.cfg_data.LOG_PARA, pred_map[0].sum().data/self.cfg_data.LOG_PARA) )
+        return loss
 
 
     def validate_V1(self):# validate_V1 for SHHA, SHHB, UCF-QNRF, UCF50
@@ -143,6 +146,7 @@ class Trainer():
         self.writer.add_scalar('val_loss', loss, self.epoch + 1)
         self.writer.add_scalar('mae', mae, self.epoch + 1)
         self.writer.add_scalar('mse', mse, self.epoch + 1)
+        self.writer.add_scalar('lr', self.optimizer.param_groups[0]['lr'], self.epoch + 1)
 
         self.train_record = update_model(self.net,self.optimizer,self.scheduler,self.epoch,self.i_tb,self.exp_path,self.exp_name, \
             [mae, mse, loss],self.train_record,self.log_txt)
