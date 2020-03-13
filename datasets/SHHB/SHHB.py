@@ -17,9 +17,9 @@ class SHHB(data.Dataset):
     def __init__(self, data_path, mode, main_transform=None, img_transform=None, gt_transform=None):
         self.root_dir=data_path
         if mode == 'train':
-            self.gt_csv=data_path+'train_crowd.csv'
+            self.gt_csv=data_path+'train_sigma4.0.csv'
         else:
-            self.gt_csv=data_path+'val_crowd.csv'
+            self.gt_csv=data_path+'val_sigma4.0.csv'
         with open(self.gt_csv) as fr:
             self.data_files=pd.read_csv(fr).values
 
