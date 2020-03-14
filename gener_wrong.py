@@ -11,10 +11,16 @@ def main():
     diff = abs(info.values[:, 1] - info.values[:, 2])
     idx_list = np.where(diff > 1)
     for idx in idx_list[0]:
-        print(info.values[idx])
         name = info.values[idx][0].split('/')[-1].replace('.jpg', '')
         shutil.copy('../SHHB_results/%s_pred_%s.png' % (name, info.values[idx][1]),
                     '../wrong/%s_pre%s_gt%s.png' % (name, info.values[idx][1], info.values[idx][2]))
+
+    with open('/output/tf_dir/final.csv') as fr:
+        info = pd.read_csv(fr).values
+    w_idx = np.where(abs(info[:, 1] - info[:, 2]) > 0)[0]
+    print('错误数/总数=%s/%s' % (len(w_idx), info.shape[0]), '=', len(w_idx) / info.shape[0])
+    w_idx_than_1 = np.where(abs(info[:, 1] - info[:, 2]) > 1)[0]
+    print('错误超过1的数目/总数=%s/%s' % (len(w_idx_than_1), info.shape[0]), '=', len(w_idx_than_1) / info.shape[0])
 
 
 if __name__ == '__main__':
