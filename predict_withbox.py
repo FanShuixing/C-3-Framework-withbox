@@ -61,10 +61,6 @@ def test(args, file_list, model_path):
     net.cuda()
     net.eval()
 
-    f1 = plt.figure(1)
-
-    gts = []
-    preds = []
     # 增加csv文件的输出
     writer = csv.writer(open(os.path.join(args.output_dir, 'final.csv'), 'w+'))
     writer.writerow(['image_name', 'predict_num', 'gt_num'])
@@ -94,7 +90,6 @@ def test(args, file_list, model_path):
         sio.savemat(exp_name + '/pred/' + name_no_suffix + '.mat', {'data': pred_map.squeeze().cpu().numpy() / 100.})
         # 处理框
         heat = _nms(pred_map / 100.)
-        #         K=1000
         batch = 1
         #         scores, inds, clses, ys, xs = _topk(heat, K=K)
         inds, ys, xs = get_topk(pred_map)
@@ -109,17 +104,15 @@ def test(args, file_list, model_path):
                                  ys - wh[..., 1:2] / 2,
                                  xs + wh[..., 0:1] / 2,
                                  ys + wh[..., 1:2] / 2], axis=2)
-        img = cv2.imread('/input1/normal/images/%s.jpg' % name_no_suffix)
-        img = cv2.resize(img, (768, 576))
+        img_show = cv2.imread('/input1/normal/images/%s.jpg' % name_no_suffix)
+        img_show = cv2.resize(img_show, (768, 576))
         for i in range(K):
             x0 = int(bboxes[0, i, 0].item())
             y0 = int(bboxes[0, i, 1].item())
             x1 = int(bboxes[0, i, 2].item())
             y1 = int(bboxes[0, i, 3].item())
-            cv2.rectangle(img, (x0, y0), (x1, y1), (255, 0, 0), 2)
-            cv2.rectangle(img, (xs[0, i, 0], ys[0, i, 0]), (xs[0, i, 0] + 5, ys[0, i, 0] + 5), (255, 0, 0), 2)
-
-        cv2.imwrite('predict_box/%s.jpg' % name_no_suffix, img)
+            cv2.rectangle(img_show, (x0, y0), (x1, y1), (255, 0, 0), 2)
+            cv2.rectangle(img_show, (xs[0, i, 0], ys[0, i, 0]), (xs[0, i, 0] + 5, ys[0, i, 0] + 5), (255, 0, 0), 2)
 
         pred_map = pred_map.cpu().data.numpy()[0, 0, :, :]
 
@@ -144,15 +137,9 @@ def test(args, file_list, model_path):
         # sio.savemat(exp_name+'/'+filename+'_gt_'+str(int(gt))+'.mat',{'data':den})
 
         pred_frame = plt.gca()
-        #         plt.imshow(img)
-        #         tmp=cv2.imread(imgname)
-        tmp = io.imread(imgname)
-        tmp = cv2.resize(tmp, (args.image_shape[1], args.image_shape[0]))
-        plt.imshow(tmp)
-        #         plt.imshow(pred_map, 'jet')
-        plt.imshow(pred_map, alpha=0.75)
-        #         io.imsave('/output/pred.jpg', pred_map * 255)
-        #         cv2.imwrite('/output/pred_cv2.jpg', pred_map * 255)
+
+        plt.imshow(img_show)
+        plt.imshow(pred_map, alpha=0.5)
         pred_frame.axes.get_yaxis().set_visible(False)
         pred_frame.axes.get_xaxis().set_visible(False)
         pred_frame.spines['top'].set_visible(False)
@@ -245,7 +232,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--root_dir", default='/input1/normal', help='root dir')
     parser.add_argument("--model_path",
-                        default='/output/tf_dir/03-26_13-06_SHHB_Res101_1e-05/all_ep_78_mae_2.3_mse_4.0.pth',
+                        default='/output/all_ep_88_mae_2.1_mse_3.6.pth',
                         help='model path for predict')
     parser.add_argument('--output_dir', default='/output/tf_dir', help='save output')
     parser.add_argument('--have_gt', default=True)
