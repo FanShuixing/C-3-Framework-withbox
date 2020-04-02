@@ -11,7 +11,6 @@ import pandas as pd
 import re
 
 from config import cfg
-import json
 
 
 class SHHB(data.Dataset):
@@ -31,14 +30,14 @@ class SHHB(data.Dataset):
 
     def __getitem__(self, index):
         fname = self.data_files[index]
-        img, den,wh,ind,mask = self.read_image_and_gt(fname)
+        img, den = self.read_image_and_gt(fname)
         if self.main_transform is not None:
             img, den = self.main_transform(img, den)
         if self.img_transform is not None:
             img = self.img_transform(img)
         if self.gt_transform is not None:
             den = self.gt_transform(den)
-        return img, den,wh,ind,mask
+        return img, den
 
     def __len__(self):
         return self.num_samples
@@ -48,43 +47,14 @@ class SHHB(data.Dataset):
         if img.mode == 'L':
             img = img.convert('RGB')
         img = img.resize((768, 576))
+        # den = sio.loadmat(os.path.join(self.gt_path,os.path.splitext(fname)[0] + '.mat'))
+        # den = den['map']
+        # den = pd.read_csv(os.path.join(self.gt_path, os.path.splitext(fname)[0] + '.csv'), sep=',', header=None).values
         den = np.load(os.path.join(self.root_dir, fname[0]))
 
         den = den.astype(np.float32, copy=False)
         den = Image.fromarray(den)
-        #wh
-        self.max_objs=150
-        name=fname[1].split('/')[-1].replace('.jpg','')
-        wh = np.zeros((self.max_objs, 2), dtype=np.float32)
-        ind = np.zeros((self.max_objs), dtype=np.int64)
-        reg_mask = np.zeros((self.max_objs), dtype=np.uint8)
-
-        with open(os.path.join(self.root_dir,'mask_labels',name+'.json')) as fr:
-            info=json.load(fr)
-            num_box=info['num_box']
-            img_w,img_h=768,576
-            for k in range(num_box):
-                x0=info['bboxes'][k]['x_min']*img_w
-                x1=info['bboxes'][k]['x_max']*img_w
-                y0=info['bboxes'][k]['y_min']*img_h
-                y1=info['bboxes'][k]['y_max']*img_h
-                w=(x1-x0)
-                h=(y1-y0)
-
-                wh[k] = 1. * w, 1. * h
-                #ind
-                output_w=768
-                ct = np.array(
-                  [(x0 + x1) / 2, (y0 + y1) / 2], dtype=np.float32)
-                ct_int = ct.astype(np.int32)
-                ind[k] = ct_int[1] * output_w + ct_int[0]
-                if ind[k]>576*768:
-                    print(ct_int[1],ct_int[0])
-                    print('*'*100,'error')
-                #reg_mask
-                reg_mask[k] = 1
-
-        return img, den,wh,ind,reg_mask
+        return img, den
 
     def get_num_samples(self):
         return self.num_samples
