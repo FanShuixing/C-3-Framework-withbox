@@ -49,7 +49,7 @@ pil_to_tensor = standard_transforms.ToTensor()
 
 def main(args):
     with open(os.path.join(args.root_dir, 'val_crowd_300.csv')) as fr:
-        file_list = pd.read_csv(fr).values
+        file_list = pd.read_csv(fr).values[:10]
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
     test(args, file_list, args.model_path)
@@ -119,23 +119,6 @@ def test(args, file_list, model_path):
         pred = np.sum(pred_map) / 100.0
         pred_map = pred_map / np.max(pred_map + 1e-20)
 
-        if args.have_gt:
-            den = den / np.max(den + 1e-20)
-            den_frame = plt.gca()
-            plt.imshow(den, 'jet')
-            den_frame.axes.get_yaxis().set_visible(False)
-            den_frame.axes.get_xaxis().set_visible(False)
-            den_frame.spines['top'].set_visible(False)
-            den_frame.spines['bottom'].set_visible(False)
-            den_frame.spines['left'].set_visible(False)
-            den_frame.spines['right'].set_visible(False)
-            plt.savefig(exp_name + '/' + name_no_suffix + '_gt_' + str(round(gt)) + '.png', \
-                        bbox_inches='tight', pad_inches=0, dpi=150)
-
-            plt.close()
-
-        # sio.savemat(exp_name+'/'+filename+'_gt_'+str(int(gt))+'.mat',{'data':den})
-
         pred_frame = plt.gca()
 
         plt.imshow(img_show)
@@ -146,35 +129,21 @@ def test(args, file_list, model_path):
         pred_frame.spines['bottom'].set_visible(False)
         pred_frame.spines['left'].set_visible(False)
         pred_frame.spines['right'].set_visible(False)
-        plt.savefig(exp_name + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '.png', \
+        if args.have_gt:
+            plt.savefig(exp_name + '/' + name_no_suffix + '_pred_' + str(round(pred)) +'_gt_'+str(round(gt))+ '.png', \
+                    bbox_inches='tight', pad_inches=0, dpi=150)
+        else:
+            plt.savefig(exp_name + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '.png', \
                     bbox_inches='tight', pad_inches=0, dpi=150)
 
         plt.close()
 
-        # sio.savemat(exp_name+'/'+filename+'_pred_'+str(float(pred))+'.mat',{'data':pred_map})
         if args.have_gt:
-            diff = den - pred_map
-
-            diff_frame = plt.gca()
-            plt.imshow(diff, 'jet')
-            plt.colorbar()
-            diff_frame.axes.get_yaxis().set_visible(False)
-            diff_frame.axes.get_xaxis().set_visible(False)
-            diff_frame.spines['top'].set_visible(False)
-            diff_frame.spines['bottom'].set_visible(False)
-            diff_frame.spines['left'].set_visible(False)
-            diff_frame.spines['right'].set_visible(False)
-            plt.savefig(exp_name + '/' + name_no_suffix + '_diff.png', \
-                        bbox_inches='tight', pad_inches=0, dpi=150)
-
-            plt.close()
-
             writer.writerow([imgname, round(pred), round(gt)])
             info_dict[name_no_suffix] = {'pred': str(round(pred)), 'gt': str(round(gt))}
         else:
             writer.writerow([imgname, round(pred)])
             info_dict[name_no_suffix] = {'pred': str(round(pred))}
-        # sio.savemat(exp_name+'/'+filename+'_diff.mat',{'data':diff})
     with open(os.path.join(args.output_dir, 'final_json.json'), 'w+') as fr:
         json.dump(info_dict, fr)
 
@@ -232,7 +201,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--root_dir", default='/input1/normal', help='root dir')
     parser.add_argument("--model_path",
-                        default='/output/all_ep_88_mae_2.1_mse_3.6.pth',
+                        default='/output/tf_dir/04-02_12-11_SHHB_Res101_1e-05/all_ep_61_mae_1.5_mse_2.5.pth',
                         help='model path for predict')
     parser.add_argument('--output_dir', default='/output/tf_dir', help='save output')
     parser.add_argument('--have_gt', default=True)
