@@ -20,20 +20,10 @@ from tqdm import tqdm
 from find_key_coor import get_topk, get_wh
 
 '''
-从test.py复制得到，增加了框的输出
+predict_withbox.py的另外一个版本，目的是为了将不同类型的数据进行统计
 '''
 torch.cuda.set_device(0)
 torch.backends.cudnn.benchmark = True
-
-exp_name = '../SHHB_results'
-if not os.path.exists(exp_name):
-    os.mkdir(exp_name)
-
-if not os.path.exists(exp_name + '/pred'):
-    os.mkdir(exp_name + '/pred')
-
-if not os.path.exists(exp_name + '/gt'):
-    os.mkdir(exp_name + '/gt')
 
 mean_std = ([0.452016860247, 0.447249650955, 0.431981861591], [0.23242045939, 0.224925786257, 0.221840232611])
 img_transform = standard_transforms.Compose([
@@ -49,7 +39,7 @@ pil_to_tensor = standard_transforms.ToTensor()
 
 def main(args):
     with open(os.path.join(args.root_dir, 'val_crowd_300.csv')) as fr:
-        file_list = pd.read_csv(fr).values[:10]
+        file_list = pd.read_csv(fr).values
     if not os.path.exists(args.output_dir):
         os.mkdir(args.output_dir)
     test(args, file_list, args.model_path)
@@ -62,10 +52,20 @@ def test(args, file_list, model_path):
     net.eval()
 
     # 增加csv文件的输出
-    writer = csv.writer(open(os.path.join(args.output_dir, 'final.csv'), 'w+'))
-    writer.writerow(['image_name', 'predict_num', 'gt_num'])
+    writer_occlude = csv.writer(open(os.path.join(args.output_dir, 'occlude.csv'), 'w+'))
+    writer_normal = csv.writer(open(os.path.join(args.output_dir, 'normal.csv'), 'w+'))
+    writer_slope = csv.writer(open(os.path.join(args.output_dir, 'slope.csv'), 'w+'))
+    writer_occlude.writerow(['image_name', 'predict_num', 'gt_num'])
+    writer_normal.writerow(['image_name', 'predict_num', 'gt_num'])
+    writer_slope.writerow(['image_name', 'predict_num', 'gt_num'])
     # 增加json的输出
     info_dict = {}
+
+    os.mkdir(os.path.join(args.output_dir, 'gt'))
+    os.mkdir(os.path.join(args.output_dir, 'pred'))
+    save_img_dir = os.path.join(args.output_dir, 'images')
+    os.mkdir(save_img_dir)
+
     for filename in tqdm(file_list):
         name_no_suffix = filename[0].split('/')[-1].replace('.npy', '')
         imgname = os.path.join(args.root_dir, filename[1])
@@ -74,7 +74,7 @@ def test(args, file_list, model_path):
             den = np.load(denname)
             den = den.astype(np.float32, copy=False)
             gt = np.sum(den)
-            sio.savemat(exp_name + '/gt/' + name_no_suffix + '.mat', {'data': den})
+            sio.savemat(args.output_dir + '/gt/' + name_no_suffix + '.mat', {'data': den})
         img = Image.open(imgname)
         img = img.resize((args.image_shape[1], args.image_shape[0]))
 
@@ -87,7 +87,8 @@ def test(args, file_list, model_path):
             img = Variable(img[None, :, :, :]).cuda()
             pred_map, pred_wh = net.test_forward(img)
 
-        sio.savemat(exp_name + '/pred/' + name_no_suffix + '.mat', {'data': pred_map.squeeze().cpu().numpy() / 100.})
+        sio.savemat(args.output_dir + '/pred/' + name_no_suffix + '.mat',
+                    {'data': pred_map.squeeze().cpu().numpy() / 100.})
         # 处理框
         heat = _nms(pred_map / 100.)
         batch = 1
@@ -130,17 +131,22 @@ def test(args, file_list, model_path):
         pred_frame.spines['left'].set_visible(False)
         pred_frame.spines['right'].set_visible(False)
         if args.have_gt:
-            plt.savefig(exp_name + '/' + name_no_suffix + '_pred_' + str(round(pred)) +'_gt_'+str(round(gt))+ '.png', \
-                    bbox_inches='tight', pad_inches=0, dpi=150)
+            plt.savefig(
+                save_img_dir + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '_gt_' + str(round(gt)) + '.png', \
+                bbox_inches='tight', pad_inches=0, dpi=150)
         else:
-            plt.savefig(exp_name + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '.png', \
-                    bbox_inches='tight', pad_inches=0, dpi=150)
+            plt.savefig(save_img_dir + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '.png', \
+                        bbox_inches='tight', pad_inches=0, dpi=150)
 
         plt.close()
 
         if args.have_gt:
-            writer.writerow([imgname, round(pred), round(gt)])
-            info_dict[name_no_suffix] = {'pred': str(round(pred)), 'gt': str(round(gt))}
+            if filename[-1] == '正常':
+                writer_normal.writerow([imgname, round(pred), round(gt)])
+            elif filename[-1] == '倾斜':
+                writer_slope.writerow([imgname, round(pred), round(gt)])
+            elif filename[-1] == '遮挡':
+                writer_occlude.writerow([imgname, round(pred), round(gt)])
         else:
             writer.writerow([imgname, round(pred)])
             info_dict[name_no_suffix] = {'pred': str(round(pred))}
@@ -203,7 +209,7 @@ if __name__ == '__main__':
     parser.add_argument("--model_path",
                         default='/output/tf_dir/04-02_12-11_SHHB_Res101_1e-05/all_ep_61_mae_1.5_mse_2.5.pth',
                         help='model path for predict')
-    parser.add_argument('--output_dir', default='/output/tf_dir', help='save output')
+    parser.add_argument('--output_dir', default='../result', help='save output')
     parser.add_argument('--have_gt', default=True)
     parser.add_argument('--image_shape', default=(576, 768), help='the image shape when training')
     args = parser.parse_args()

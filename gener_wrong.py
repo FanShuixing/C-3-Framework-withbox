@@ -12,7 +12,7 @@ def main():
     idx_list = np.where(diff > 1)
     for idx in idx_list[0]:
         name = info.values[idx][0].split('/')[-1].replace('.jpg', '')
-        shutil.copy('../SHHB_results/%s_pred_%s.png' % (name, info.values[idx][1]),
+        shutil.copy('../SHHB_results/%s_pred_%s_gt_%s.png' % (name, info.values[idx][1],info.values[idx][2]),
                     '../wrong/%s_pre%s_gt%s.png' % (name, info.values[idx][1], info.values[idx][2]))
 
     with open('/output/tf_dir/final.csv') as fr:
