@@ -18,10 +18,8 @@ def main(file_dir,status,pred_dir='../result',save_dir='../wrong'):
     idx_list = np.where(diff > 1)
     for idx in idx_list[0]:
         name = info.values[idx][0].split('/')[-1].replace('.jpg', '')
-        ori=os.path.join(pred_dir,'%s_pred_%s.png'%(name, info.values[idx][1]))
+        ori=os.path.join(pred_dir,'%s_pred_%s_gt_%s.png'%(name, info.values[idx][1],info.values[idx][2]))
         target=os.path.join(save_dir,status,'%s_pred%s_gt%s.png'%(name,info.values[idx][1], info.values[idx][2]))
-#         shutil.copy('../SHHB_results/%s_pred_%s.png' % (name, info.values[idx][1]),
-#                     '../wrong/%s/%s_pre%s_gt%s.png' % (status,name, info.values[idx][1], info.values[idx][2]))
         shutil.copy(ori,target)
 
     with open(file_dir) as fr:
