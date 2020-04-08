@@ -22,6 +22,7 @@ from Evaluator import *
 from utils import BBFormat
 import json
 import pandas as pd
+import glob
 
 
 # Validate formats
@@ -88,8 +89,8 @@ def ValidatePaths(arg, nameArg, errors):
         arg = os.path.join(currentPath, arg)
     return arg
 
-
-def getBoundingBoxes(directory,
+def getBoundingBoxes(gt_directory,
+                     det_directory,
                      isGT,
                      bbFormat,
                      coordType,
@@ -101,15 +102,13 @@ def getBoundingBoxes(directory,
         allBoundingBoxes = BoundingBoxes()
     if allClasses is None:
         allClasses = []
-#     if not isGT:
-    with open(os.path.join('pre','occlude.json')) as json_fr:
+    json_path=glob.glob('%s/*.json'%det_directory)
+    with open(json_path[0]) as json_fr:
         json_info_pre = json.load(json_fr)
-#     info=['flir_20191201T203721_rgb_image','flir_20191202T220731_rgb_image','flir_20191212T102450_rgb_image']
-#     info=['0000%s'%i for i in range(1,8)]
     for each in json_info_pre.keys():
         name = each.split('/')[-1].replace('.npy', '')
         if isGT:  # gt是每个文件一个json
-            with open(os.path.join(directory,'mask_labels', name+'.json')) as json_fr:
+            with open(os.path.join(gt_directory,'mask_labels', name+'.json')) as json_fr:
                 json_info = json.load(json_fr)
 #                 img_w, img_h = json_info['image_width'], json_info['image_height']
                 #因为img_w和img_h是按照768,576来回归的
@@ -299,10 +298,10 @@ showPlot = args.showPlot
 
 # Get groundtruth boxes
 allBoundingBoxes, allClasses = getBoundingBoxes(
-    gtFolder, True, gtFormat, gtCoordType, imgSize=imgSize)
+    gtFolder,detFolder, True, gtFormat, gtCoordType, imgSize=imgSize)
 # Get detected boxes
 allBoundingBoxes, allClasses = getBoundingBoxes(
-    detFolder, False, detFormat, detCoordType, allBoundingBoxes, allClasses, imgSize=imgSize)
+    gtFolder,detFolder, False, detFormat, detCoordType, allBoundingBoxes, allClasses, imgSize=imgSize)
 allClasses.sort()
 
 evaluator = Evaluator()
@@ -335,6 +334,7 @@ for metricsPerClass in detections:
     totalPositives = metricsPerClass['total positives']
     total_TP = metricsPerClass['total TP']
     total_FP = metricsPerClass['total FP']
+    print('*'*10,detFolder,'*'*10)
     print('total_TP',total_TP,'total_FP',total_FP,'totalPositives:',totalPositives)
     # 增加新的指标F1_score
     P = total_TP / (total_TP + total_FP)

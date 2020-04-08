@@ -1,4 +1,4 @@
-#v16版本的验证集
+
 root_dir='/input1/normal'
 model_path='/output/tf_dir/04-03_10-19_SHHB_Res101_1e-05/all_ep_61_mae_0.9_mse_1.8.pth'
 #v16版本的验证集
