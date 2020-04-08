@@ -59,7 +59,9 @@ def test(args, file_list, model_path):
     writer_normal.writerow(['image_name', 'predict_num', 'gt_num'])
     writer_slope.writerow(['image_name', 'predict_num', 'gt_num'])
     # 增加json的输出
-    info_dict = {}
+    total_normal = {}
+    total_occlude={}
+    total_slope={}
 
     os.mkdir(os.path.join(args.output_dir, 'gt'))
     os.mkdir(os.path.join(args.output_dir, 'pred'))
@@ -67,6 +69,9 @@ def test(args, file_list, model_path):
     os.mkdir(save_img_dir)
 
     for filename in tqdm(file_list):
+        info_normal_dict = {}
+        info_occlude_dict = {}
+        info_slope_dict = {}
         name_no_suffix = filename[0].split('/')[-1].replace('.npy', '')
         imgname = os.path.join(args.root_dir, filename[1])
         if args.have_gt:
@@ -107,13 +112,23 @@ def test(args, file_list, model_path):
                                  ys + wh[..., 1:2] / 2], axis=2)
         img_show = cv2.imread('/input1/normal/images/%s.jpg' % name_no_suffix)
         img_show = cv2.resize(img_show, (768, 576))
+        bboxes_json = []
         for i in range(K):
+            tmp = {}
             x0 = int(bboxes[0, i, 0].item())
             y0 = int(bboxes[0, i, 1].item())
             x1 = int(bboxes[0, i, 2].item())
             y1 = int(bboxes[0, i, 3].item())
             cv2.rectangle(img_show, (x0, y0), (x1, y1), (255, 0, 0), 2)
             cv2.rectangle(img_show, (xs[0, i, 0], ys[0, i, 0]), (xs[0, i, 0] + 5, ys[0, i, 0] + 5), (255, 0, 0), 2)
+            # 添加json输出
+            tmp['x_min'] = x0 / 768
+            tmp['x_max'] = x1 / 768
+            tmp['y_min'] = y0 / 576
+            tmp['y_max'] = y1 / 576
+            tmp['label'] = 'mucai'
+            tmp['confidence'] = 1.0
+            bboxes_json.append(tmp)
 
         pred_map = pred_map.cpu().data.numpy()[0, 0, :, :]
 
@@ -143,15 +158,34 @@ def test(args, file_list, model_path):
         if args.have_gt:
             if filename[-1] == '正常':
                 writer_normal.writerow([imgname, round(pred), round(gt)])
+                info_normal_dict['image_height'] = 768
+                info_normal_dict['image_width'] = 576
+                info_normal_dict['num_box'] = len(bboxes_json)
+                info_normal_dict['bboxes'] = bboxes_json
+                total_normal[name_no_suffix] = info_normal_dict
             elif filename[-1] == '倾斜':
                 writer_slope.writerow([imgname, round(pred), round(gt)])
+                info_slope_dict['image_height'] = 768
+                info_slope_dict['image_width'] = 576
+                info_slope_dict['num_box'] = len(bboxes_json)
+                info_slope_dict['bboxes'] = bboxes_json
+                total_slope[name_no_suffix] = info_slope_dict
             elif filename[-1] == '遮挡':
                 writer_occlude.writerow([imgname, round(pred), round(gt)])
+                info_occlude_dict['image_height'] = 768
+                info_occlude_dict['image_width'] = 576
+                info_occlude_dict['num_box'] = len(bboxes_json)
+                info_occlude_dict['bboxes'] = bboxes_json
+                total_occlude[name_no_suffix] = info_occlude_dict
         else:
             writer.writerow([imgname, round(pred)])
             info_dict[name_no_suffix] = {'pred': str(round(pred))}
-    with open(os.path.join(args.output_dir, 'final_json.json'), 'w+') as fr:
-        json.dump(info_dict, fr)
+    with open(os.path.join(args.output_dir, 'normal.json'), 'w+') as fr:
+        json.dump(total_normal, fr)
+    with open(os.path.join(args.output_dir, 'slope.json'), 'w+') as fr:
+        json.dump(total_slope, fr)
+    with open(os.path.join(args.output_dir, 'occlude.json'), 'w+') as fr:
+            json.dump(total_occlude, fr)
 
 
 import torch.nn as nn
@@ -207,9 +241,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--root_dir", default='/input1/normal', help='root dir')
     parser.add_argument("--model_path",
-                        default='/output/tf_dir/04-02_12-11_SHHB_Res101_1e-05/all_ep_61_mae_1.5_mse_2.5.pth',
+                        default='/output/tf_dir/04-03_10-19_SHHB_Res101_1e-05/all_ep_61_mae_0.9_mse_1.8.pth',
                         help='model path for predict')
-    parser.add_argument('--output_dir', default='../result', help='save output')
+    parser.add_argument('--output_dir', default='../result_16', help='save output')
     parser.add_argument('--have_gt', default=True)
     parser.add_argument('--image_shape', default=(576, 768), help='the image shape when training')
     args = parser.parse_args()
