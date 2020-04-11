@@ -44,7 +44,7 @@ class CrowdCounter(nn.Module):
         self.crit_wh = RegL1Loss()
         self.wh_loss = self.crit_wh(pre_wh, gt_ind, gt_wh, gt_reg_mask)
         #         loss = opt.hm_weight * self.loss_mse + opt.wh_weight *self.wh_loss
-        self.all_loss = 1 * self.loss_mse + 0.1 * self.wh_loss
+        self.all_loss = 1 * self.loss_mse + 0.0001 * self.wh_loss
 
         return density_map
 
