@@ -12,15 +12,16 @@ import re
 
 from config import cfg
 import json
+from datasets.mat_to_npy import get_density
 
 
 class SHHB(data.Dataset):
     def __init__(self, data_path, mode, main_transform=None, img_transform=None, gt_transform=None):
         self.root_dir=data_path
         if mode == 'train':
-            self.gt_csv=data_path+'train_sigma4.0.csv'
+            self.gt_csv=data_path+'train_meta.csv'
         else:
-            self.gt_csv=data_path+'val_sigma4.0.csv'
+            self.gt_csv=data_path+'val_meta.csv'
         with open(self.gt_csv) as fr:
             self.data_files=pd.read_csv(fr).values
 
@@ -48,18 +49,17 @@ class SHHB(data.Dataset):
         if img.mode == 'L':
             img = img.convert('RGB')
         img = img.resize((768, 576))
-        den = np.load(os.path.join(self.root_dir, fname[0]))
+        den=get_density(os.path.join(self.root_dir, fname[1]),os.path.join(self.root_dir, fname[0]),w=768,h=576)
 
         den = den.astype(np.float32, copy=False)
         den = Image.fromarray(den)
         #wh
         self.max_objs=150
-        name=fname[1].split('/')[-1].replace('.jpg','')
         wh = np.zeros((self.max_objs, 2), dtype=np.float32)
         ind = np.zeros((self.max_objs), dtype=np.int64)
         reg_mask = np.zeros((self.max_objs), dtype=np.uint8)
 
-        with open(os.path.join(self.root_dir,'mask_labels',name+'.json')) as fr:
+        with open(os.path.join(self.root_dir,fname[0])) as fr:
             info=json.load(fr)
             num_box=info['num_box']
             img_w,img_h=768,576
@@ -88,4 +88,3 @@ class SHHB(data.Dataset):
 
     def get_num_samples(self):
         return self.num_samples
-
