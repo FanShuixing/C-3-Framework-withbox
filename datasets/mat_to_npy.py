@@ -25,6 +25,9 @@ def get_density(img_dir,det_gt_dir,w=768,h=576):
     annPoints[:, 1] = annPoints[:, 1] * float(rate_h)
 
     im_density = get_density_map_gaussian(im, annPoints)
+    #debug
+    # np.save('tmp.npy',im_density)
+
     return im_density
 
 

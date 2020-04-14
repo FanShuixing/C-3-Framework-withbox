@@ -39,7 +39,7 @@ pil_to_tensor = standard_transforms.ToTensor()
 
 
 def main(args):
-    with open(os.path.join('/input1/normal', args.meta_name+'.csv')) as fr:
+    with open(os.path.join('/input1/normal', args.meta_name + '.csv')) as fr:
         file_list = pd.read_csv(fr).values
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -53,15 +53,14 @@ def test(args, file_list, model_path):
     net.eval()
 
     # 增加csv文件的输出
-    writer = csv.writer(open(os.path.join(args.output_dir, '%s.csv'%args.meta_name.split('_')[0]), 'w+'))
-    writer.writerow(['image_name', 'predict_num', 'gt_num'])
+    writer = csv.writer(open(os.path.join(args.output_dir, '%s.csv' % args.meta_name.split('_')[0]), 'w+'))
+    writer.writerow(['image_name', 'predict_num', 'gt_num', 'boxes_nums'])
     # 增加json的输出
     total_dict = {}
     os.mkdir(os.path.join(args.output_dir, 'gt'))
     os.mkdir(os.path.join(args.output_dir, 'pred'))
     save_img_dir = os.path.join(args.output_dir, 'images')
     os.mkdir(save_img_dir)
-
     for filename in tqdm(file_list):
         info_dict = {}
 
@@ -103,7 +102,7 @@ def test(args, file_list, model_path):
                                  ys - wh[..., 1:2] / 2,
                                  xs + wh[..., 0:1] / 2,
                                  ys + wh[..., 1:2] / 2], axis=2)
-        img_show = cv2.imread('/input1/normal/images/%s.jpg' % name_no_suffix)
+        img_show = cv2.imread('/input1/normal/images/%s.jpg' % name_no_suffix)[:, :, ::-1]
         img_show = cv2.resize(img_show, (768, 576))
         bboxes_json = []
         for i in range(K):
@@ -113,7 +112,7 @@ def test(args, file_list, model_path):
             x1 = int(bboxes[0, i, 2].item())
             y1 = int(bboxes[0, i, 3].item())
             cv2.rectangle(img_show, (x0, y0), (x1, y1), (255, 0, 0), 2)
-            cv2.rectangle(img_show, (xs[0, i, 0], ys[0, i, 0]), (xs[0, i, 0] + 5, ys[0, i, 0] + 5), (255, 0, 0), 2)
+            #             cv2.rectangle(img_show, (xs[0, i, 0], ys[0, i, 0]), (xs[0, i, 0] + 5, ys[0, i, 0] + 5), (255, 0, 0), 2)
             # 添加json输出
             tmp['x_min'] = x0 / 768
             tmp['x_max'] = x1 / 768
@@ -122,7 +121,19 @@ def test(args, file_list, model_path):
             tmp['label'] = 'mucai'
             tmp['confidence'] = 1.0
             bboxes_json.append(tmp)
+        # 给图像画上gt的框
+        if args.have_gt:
+            with open(os.path.join(args.root_dir, 'mask_labels', name_no_suffix + '.json')) as fr:
+                gt_info = json.load(fr)
+                for each_box in gt_info['bboxes']:
+                    x_min = each_box['x_min'] * args.image_shape[1]
+                    y_min = each_box['y_min'] * args.image_shape[0]
+                    x_max = each_box['x_max'] * args.image_shape[1]
+                    y_max = each_box['y_max'] * args.image_shape[0]
 
+                    x_center = int((x_max - x_min) / 2 + x_min)
+                    y_center = int((y_max - y_min) / 2 + y_min)
+                    cv2.rectangle(img_show, (x_center, y_center), (x_center + 5, y_center + 5), (0, 0, 255), 2)
         pred_map = pred_map.cpu().data.numpy()[0, 0, :, :]
 
         pred = np.sum(pred_map) / 100.0
@@ -131,7 +142,7 @@ def test(args, file_list, model_path):
         pred_frame = plt.gca()
 
         plt.imshow(img_show)
-        plt.imshow(pred_map, alpha=0.5)
+        #         plt.imshow(pred_map, alpha=0.5)
         pred_frame.axes.get_yaxis().set_visible(False)
         pred_frame.axes.get_xaxis().set_visible(False)
         pred_frame.spines['top'].set_visible(False)
@@ -140,26 +151,27 @@ def test(args, file_list, model_path):
         pred_frame.spines['right'].set_visible(False)
         if args.have_gt:
             plt.savefig(
-                save_img_dir + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '_gt_' + str(round(gt)) + '.png', \
+                save_img_dir + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '_gt_' + str(
+                    round(gt)) + '_box_' + str(K) + '.png', \
                 bbox_inches='tight', pad_inches=0, dpi=150)
         else:
-            plt.savefig(save_img_dir + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '.png', \
+            plt.savefig(save_img_dir + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '_box_' + str(K) + '.png', \
                         bbox_inches='tight', pad_inches=0, dpi=150)
 
         plt.close()
 
         if args.have_gt:
-            writer.writerow([imgname, round(pred), round(gt)])
+            writer.writerow([imgname, round(pred), round(gt), K])
             info_dict['image_height'] = 768
             info_dict['image_width'] = 576
             info_dict['num_box'] = len(bboxes_json)
             info_dict['bboxes'] = bboxes_json
             total_dict[name_no_suffix] = info_dict
         else:
-            writer.writerow([imgname, round(pred)])
+            writer.writerow([imgname, round(pred), K])
             info_dict[name_no_suffix] = {'pred': str(round(pred))}
-    with open(os.path.join(args.output_dir,'%s.json'%args.meta_name.split('_')[0]),'w+') as fr:
-        json.dump(total_dict,fr)
+    with open(os.path.join(args.output_dir, '%s.json' % args.meta_name.split('_')[0]), 'w+') as fr:
+        json.dump(total_dict, fr)
 
 
 def _topk(scores, K=40):
@@ -217,6 +229,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', default='../result_16_normal', help='save output')
     parser.add_argument('--have_gt', default=True)
     parser.add_argument('--image_shape', default=(576, 768), help='the image shape when training')
-    parser.add_argument('--meta_name',default='normal_v16')
+    parser.add_argument('--meta_name', default='normal_v16')
     args = parser.parse_args()
     main(args)
