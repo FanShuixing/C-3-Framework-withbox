@@ -8,6 +8,12 @@ import torch
 
 
 def get_largest_n(arr, N, keypoint_nums):
+    '''
+    给定arr，在arr中寻找N个最大值当中，最多为keypoint_nums的较大值
+    如N=2000,keypoint_nums=200,就是在数组arr中，找出最大的2000个值的索引，
+    然后返回这2000个值对应的坐标，根据坐标，可以得到2000个最大值,当然里面有很多重复的，
+    所以取set，取了set后的数目是不定的
+    '''
     # Convert it into a 1D array
     a_1d = arr.flatten()
 
@@ -27,6 +33,11 @@ def get_largest_n(arr, N, keypoint_nums):
 
 
 def find_coor(arr2D, top_value):
+    '''
+    get_largest_n()已经返回了那些较大的关键点值，
+    但是因为一个最大值通常对应非常多的坐标，但是这些坐标其实对应的只是一个关键点，
+    所以对应每一个大值，我们取其对应坐标的均值作为其对应关键点的坐标
+    '''
     result = np.where(arr2D == top_value)
     listOfCordinates = list(zip(result[0], result[1]))
     listOfCordinates = np.array(listOfCordinates)
@@ -97,7 +108,10 @@ def get_coor_dict(idx, keypoint_nums):
 def get_topk(heatmap, width=768):
     '''
     返回heatmap keypoint的关键点，对应的xs,ys坐标。先找到关键点的坐标，然后用x*width+y表示索引
-
+    return:
+    xs:[1,box_nums,1]
+    ys:[1,box_nums,1]
+    inds:[1,box_nums]
     '''
     arr2D = heatmap.cpu().numpy()
     arr2D = np.squeeze(arr2D)
