@@ -47,10 +47,7 @@ __C.PRINT_FREQ = 10
 
 now = time.strftime("%m-%d_%H-%M", time.localtime())
 
-__C.EXP_NAME = now \
-			 + '_' + __C.DATASET \
-             + '_' + __C.NET \
-             + '_' + str(__C.LR)
+__C.EXP_NAME = now
 
 if __C.DATASET == 'UCF50':
 	__C.EXP_NAME += '_' + str(__C.VAL_INDEX)	

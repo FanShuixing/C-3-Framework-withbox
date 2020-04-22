@@ -19,6 +19,7 @@ from skimage import io
 from tqdm import tqdm
 from find_key_coor import get_topk, get_wh
 import torch.nn as nn
+from datasets.mat_to_npy import get_density
 
 '''
 predict_withbox.py的另外一个版本，目的是为了将不同类型的数据进行统计
@@ -39,7 +40,7 @@ pil_to_tensor = standard_transforms.ToTensor()
 
 
 def main(args):
-    with open(os.path.join('/input1/normal', args.meta_name + '.csv')) as fr:
+    with open(os.path.join(args.root_dir, args.meta_name + '.csv')) as fr:
         file_list = pd.read_csv(fr).values
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -68,7 +69,7 @@ def test(args, file_list, model_path):
         imgname = os.path.join(args.root_dir, filename[1])
         if args.have_gt:
             denname = os.path.join(args.root_dir, filename[0])
-            den = np.load(denname)
+            den = get_density(os.path.join(args.root_dir, filename[1]), os.path.join(args.root_dir, filename[0]), w=768,h=576)
             den = den.astype(np.float32, copy=False)
             gt = np.sum(den)
             sio.savemat(args.output_dir + '/gt/' + name_no_suffix + '.mat', {'data': den})
@@ -102,7 +103,7 @@ def test(args, file_list, model_path):
                                  ys - wh[..., 1:2] / 2,
                                  xs + wh[..., 0:1] / 2,
                                  ys + wh[..., 1:2] / 2], axis=2)
-        img_show = cv2.imread('/input1/normal/images/%s.jpg' % name_no_suffix)[:, :, ::-1]
+        img_show = cv2.imread(imgname)[:, :, ::-1]
         img_show = cv2.resize(img_show, (768, 576))
         bboxes_json = []
         for i in range(K):
