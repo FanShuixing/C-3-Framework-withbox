@@ -40,7 +40,7 @@ pil_to_tensor = standard_transforms.ToTensor()
 
 
 def main(args):
-    with open(os.path.join(args.root_dir, args.meta_name + '.csv')) as fr:
+    with open(os.path.join(args.root_dir,'val_csv', args.meta_name + '.csv')) as fr:
         file_list = pd.read_csv(fr).values
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -65,7 +65,7 @@ def test(args, file_list, model_path):
     for filename in tqdm(file_list):
         info_dict = {}
 
-        name_no_suffix = filename[0].split('/')[-1].replace('.npy', '')
+        name_no_suffix = filename[0].split('/')[-1].replace('.json', '')
         imgname = os.path.join(args.root_dir, filename[1])
         if args.have_gt:
             denname = os.path.join(args.root_dir, filename[0])
