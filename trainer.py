@@ -156,6 +156,11 @@ class Trainer():
 
         mae = maes.avg
         mse = np.sqrt(mses.avg)
+
+        import openbayestool
+        openbayestool.log_metric("mae", mae)
+        openbayestool.log_metric("mse", mse)
+
         hm_loss = hm_losses.avg
         wh_loss = wh_losses.avg
         all_loss = all_losses.avg
