@@ -143,7 +143,7 @@ def test(args, file_list, model_path):
         pred_frame = plt.gca()
 
         plt.imshow(img_show)
-        #         plt.imshow(pred_map, alpha=0.5)
+        plt.imshow(pred_map, alpha=0.5)
         pred_frame.axes.get_yaxis().set_visible(False)
         pred_frame.axes.get_xaxis().set_visible(False)
         pred_frame.spines['top'].set_visible(False)
