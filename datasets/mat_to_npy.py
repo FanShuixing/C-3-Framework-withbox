@@ -24,11 +24,11 @@ def get_density(img_dir,det_gt_dir,w=768,h=576):
     annPoints[:, 0] = annPoints[:, 0] * float(rate_w)
     annPoints[:, 1] = annPoints[:, 1] * float(rate_h)
 
-    im_density = get_density_map_gaussian(im, annPoints)
+    im_density,hm_mask = get_density_map_gaussian(im, annPoints)
     #debug
     # np.save('tmp.npy',im_density)
 
-    return im_density
+    return im_density,hm_mask
 
 
 def get_mat(det_gt_dir,width=768,height=576):
@@ -69,6 +69,7 @@ def matlab_style_gauss2D(shape=(300, 300), sigma=0.5):
 
 def get_density_map_gaussian(im, points):
     im_density = np.zeros(im.shape)
+    hm_mask=np.zeros(im.shape)
     [h, w] = im_density.shape
 
     for j in range(0, len(points)):
@@ -114,7 +115,8 @@ def get_density_map_gaussian(im, points):
             # H = matlab.fspecial('Gaussian', [double(y2h - y1h + 1), double(x2h - x1h + 1)], sigma)
             H = matlab_style_gauss2D([float(y2h - y1h + 1), float(x2h - x1h + 1)], sigma)
         im_density[y1 - 1: y2, x1 - 1: x2] = im_density[y1 - 1: y2, x1 - 1: x2] + H
-    return im_density
+        hm_mask[y1 - 1: y2, x1 - 1: x2]=1
+    return im_density,hm_mask
 
 
 if __name__ == '__main__':

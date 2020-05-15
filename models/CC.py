@@ -36,20 +36,33 @@ class CrowdCounter(nn.Module):
     def loss(self):
         return self.loss_mse, self.wh_loss, self.all_loss
 
-    def forward(self, img, gt_map, gt_wh, gt_ind, gt_reg_mask):
+    def forward(self, img, gt_map, gt_wh, gt_ind, gt_reg_mask, gt_hm_mask):
         density_map, pre_wh = self.CCN(img)
         # 最初只返回这个loss
-        self.loss_mse = self.build_loss(density_map.squeeze(), gt_map.squeeze())
+        #self.loss_mse = self.build_loss(density_map.squeeze(), gt_map.squeeze())
+        # 修改hm loss
+        #print(density_map.shape,density_map.squeeze().shape)[8,1,576,768],[8,576,768]
+        self.loss_mse = self.build_loss(density_map.squeeze(), gt_map.squeeze(), gt_hm_mask.squeeze())
+
         # wh_loss
         self.crit_wh = RegL1Loss()
         self.wh_loss = self.crit_wh(pre_wh, gt_ind, gt_wh, gt_reg_mask)
-        #         loss = opt.hm_weight * self.loss_mse + opt.wh_weight *self.wh_loss
         self.all_loss = 1 * self.loss_mse + 0.0001 * self.wh_loss
 
         return density_map
 
-    def build_loss(self, density_map, gt_data):
-        loss_mse = self.loss_mse_fn(density_map, gt_data)
+    def build_loss(self, density_map, gt_data, gt_mask):
+        # loss_mse = self.loss_mse_fn(density_map*gt_mask, gt_data*gt_mask)
+
+        #loss_mse = F.mse_loss(density_map * gt_mask, gt_data * gt_mask, size_average=False)
+        # loss_mse = loss_mse / (576*768*8 + 1e-4)
+        loss_mse_pos = F.mse_loss(density_map * gt_mask, gt_data * gt_mask, size_average=False)
+        nums = (gt_mask == 1).nonzero().shape[0]
+        loss_mse_pos = loss_mse_pos / (nums + 1e-4)
+
+        loss_mse_ori = F.mse_loss(density_map, gt_data, size_average=True)
+        loss_mse = loss_mse_ori + 0.1 * loss_mse_pos
+
         return loss_mse
 
     def test_forward(self, img):

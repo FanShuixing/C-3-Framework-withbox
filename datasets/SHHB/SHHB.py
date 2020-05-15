@@ -32,14 +32,14 @@ class SHHB(data.Dataset):
 
     def __getitem__(self, index):
         fname = self.data_files[index]
-        img, den,wh,ind,mask = self.read_image_and_gt(fname)
+        img, den,wh,ind,mask,hm_mask = self.read_image_and_gt(fname)
         if self.main_transform is not None:
             img, den = self.main_transform(img, den)
         if self.img_transform is not None:
             img = self.img_transform(img)
         if self.gt_transform is not None:
             den = self.gt_transform(den)
-        return img, den,wh,ind,mask
+        return img, den,wh,ind,mask,hm_mask
 
     def __len__(self):
         return self.num_samples
@@ -49,7 +49,7 @@ class SHHB(data.Dataset):
         if img.mode == 'L':
             img = img.convert('RGB')
         img = img.resize((768, 576))
-        den=get_density(os.path.join(self.root_dir, fname[1]),os.path.join(self.root_dir, fname[0]),w=768,h=576)
+        den,hm_mask=get_density(os.path.join(self.root_dir, fname[1]),os.path.join(self.root_dir, fname[0]),w=768,h=576)
 
         den = den.astype(np.float32, copy=False)
         den = Image.fromarray(den)
@@ -84,7 +84,7 @@ class SHHB(data.Dataset):
                 #reg_mask
                 reg_mask[k] = 1
 
-        return img, den,wh,ind,reg_mask
+        return img, den,wh,ind,reg_mask,hm_mask
 
     def get_num_samples(self):
         return self.num_samples
