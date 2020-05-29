@@ -54,7 +54,7 @@ def test(args, file_list, model_path):
     net.eval()
 
     # 增加csv文件的输出
-    writer = csv.writer(open(os.path.join(args.output_dir, '%s.csv' % args.meta_name.split('_')[0]), 'w+'))
+    writer = csv.writer(open(os.path.join(args.output_dir, '%s.csv' % args.meta_name.split('_')[1]), 'w+'))
     writer.writerow(['image_name', 'predict_num', 'gt_num', 'boxes_nums'])
     # 增加json的输出
     total_dict = {}
@@ -69,7 +69,7 @@ def test(args, file_list, model_path):
         imgname = os.path.join(args.root_dir, filename[1])
         if args.have_gt:
             denname = os.path.join(args.root_dir, filename[0])
-            den = get_density(os.path.join(args.root_dir, filename[1]), os.path.join(args.root_dir, filename[0]), w=768,h=576)
+            den,_ = get_density(os.path.join(args.root_dir, filename[1]), os.path.join(args.root_dir, filename[0]), w=768,h=576)
             den = den.astype(np.float32, copy=False)
             gt = np.sum(den)
             sio.savemat(args.output_dir + '/gt/' + name_no_suffix + '.mat', {'data': den})

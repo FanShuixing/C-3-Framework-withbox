@@ -34,6 +34,13 @@ class Res50(nn.Module):
             nn.BatchNorm2d(2048),
             nn.ReLU(inplace=True),
         )
+        # 修改下采样最后一层
+        downsample = nn.Sequential(
+            nn.Conv2d(1024, 2048,
+                      kernel_size=3, stride=2, bias=False,padding=1),
+            nn.BatchNorm2d(2048),
+        )
+        self.res4=Bottleneck(1024, 512, stride=2, downsample=downsample)
         self.latter1 = nn.Conv2d(2048, 128, kernel_size=1, stride=1, padding=0)
         self.latter2 = nn.Conv2d(1024, 128, kernel_size=1, stride=1, padding=0)
         self.latter3 = nn.Conv2d(512, 128, kernel_size=1, stride=1, padding=0)
@@ -56,7 +63,8 @@ class Res50(nn.Module):
 
         x5 = self.own_reslayer_3(x4)
 
-        x6 = self.own(x5)
+        # x6 = self.own(x5)
+        x6=self.res4(x5)
         p6 = self.latter1(x6)
         p5 = self._upsample_add(p6, self.latter2(x5))
         p4 = p5 + self.latter3(x4)
