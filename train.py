@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import torch
-
+import argparse
 from config import cfg
 
 #------------prepare enviroment------------
@@ -58,6 +58,13 @@ elif net in ['PCCNet']:
     from trainer_for_M3T3OCC import Trainer
 
 #------------Start Training------------
+parser = argparse.ArgumentParser()
+parser.add_argument('--lr', default='1e-5')
+parser.add_argument('--optimizer', default='adam')
+args = parser.parse_args()
+cfg_data.LR=args.lr
+cfg_data.OPTIMIZER=args.optimizer
+
 pwd = os.path.split(os.path.realpath(__file__))[0]
 cc_trainer = Trainer(loading_data,cfg_data,pwd)
 cc_trainer.forward()

@@ -88,15 +88,16 @@ class Trainer():
         self.net.train()
         for i, data in enumerate(self.train_loader, 0):
             self.timer['iter time'].tic()
-            img, gt_map, gt_wh, gt_ind, gt_reg_mask = data
+            img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask = data
             img = Variable(img).cuda()
             gt_map = Variable(gt_map).cuda()
             gt_wh = Variable(gt_wh).cuda()
             gt_ind = Variable(gt_ind).cuda()
             gt_reg_mask = Variable(gt_reg_mask).cuda()
+            gt_hm_mask = Variable(gt_hm_mask).cuda()
 
             self.optimizer.zero_grad()
-            pred_map = self.net(img, gt_map, gt_wh, gt_ind, gt_reg_mask)
+            pred_map = self.net(img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask)
             hm_loss, wh_loss, all_loss = self.net.loss
             all_loss.backward()
             self.optimizer.step()
@@ -126,7 +127,7 @@ class Trainer():
         mses = AverageMeter()
 
         for vi, data in enumerate(self.val_loader, 0):
-            img, gt_map, gt_wh, gt_ind, gt_reg_mask = data
+            img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask = data
 
             with torch.no_grad():
                 img = Variable(img).cuda()
@@ -134,8 +135,9 @@ class Trainer():
                 gt_wh = Variable(gt_wh).cuda()
                 gt_ind = Variable(gt_ind).cuda()
                 gt_reg_mask = Variable(gt_reg_mask).cuda()
+                gt_hm_mask=Variable(gt_hm_mask).cuda()
 
-                pred_map = self.net.forward(img, gt_map, gt_wh, gt_ind, gt_reg_mask)
+                pred_map = self.net.forward(img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask)
 
                 pred_map = pred_map.data.cpu().numpy()
                 gt_map = gt_map.data.cpu().numpy()
@@ -156,6 +158,11 @@ class Trainer():
 
         mae = maes.avg
         mse = np.sqrt(mses.avg)
+
+        import openbayestool
+        openbayestool.log_metric("mae", mae)
+        openbayestool.log_metric("mse", mse)
+
         hm_loss = hm_losses.avg
         wh_loss = wh_losses.avg
         all_loss = all_losses.avg
