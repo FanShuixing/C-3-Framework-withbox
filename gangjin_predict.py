@@ -87,7 +87,7 @@ def test(args, file_list, model_path):
 
             with torch.no_grad():
                 img = Variable(img[None, :, :, :]).cuda()
-                pred_map, pred_wh, pred_offset = net.test_forward(img)
+                pred_map, pred_wh,pred_offset = net.test_forward(img)
 
             sio.savemat(args.output_dir + '/pred/' + name_no_suffix + '.mat',
                         {'data': pred_map.squeeze().cpu().numpy() / 100.})
@@ -114,7 +114,7 @@ def test(args, file_list, model_path):
             ori_h, ori_w, _ = img_show.shape
             #             img_show = cv2.resize(img_show, (768, 576))
             bboxes_json = []
-            for i in range(inds.shape[0]):
+            for i in range(inds.shape[1]):
                 tmp = {}
                 x0 = int(bboxes[0, i, 0].item())
                 y0 = int(bboxes[0, i, 1].item())
