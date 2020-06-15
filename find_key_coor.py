@@ -43,7 +43,7 @@ def find_coor(arr2D, top_value):
     listOfCordinates = np.array(listOfCordinates)
     x = np.sum(listOfCordinates[:, 0]) / len(listOfCordinates)
     y = np.sum(listOfCordinates[:, 1]) / len(listOfCordinates)
-    return int(x), int(y)
+    return int(round(x)),int(round(y))
 
 
 def dist(p1, p2):
@@ -115,7 +115,7 @@ def get_topk(heatmap, width=768):
     '''
     arr2D = heatmap.cpu().numpy()
     arr2D = np.squeeze(arr2D)
-    keypoint_value = get_largest_n(arr2D, 2000, keypoint_nums=200)
+    keypoint_value = get_largest_n(arr2D, 8000, keypoint_nums=500)
     # 得到框，boxes里面有大量的重复的框
     boxes = []
     for top_value in keypoint_value:
