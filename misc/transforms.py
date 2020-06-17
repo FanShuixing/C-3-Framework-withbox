@@ -3,36 +3,38 @@ import random
 import numpy as np
 from PIL import Image, ImageOps, ImageFilter
 from config import cfg
-import torch
+import torch, cv2
+
+
 # ===============================img tranforms============================
 
 class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, img, mask, bbx=None):
-        if bbx is None:
+    def __call__(self, img, mask, hm_mask, bboxes=None):
+        if bboxes is not None:
             for t in self.transforms:
-                img, mask = t(img, mask)
-            return img, mask
-        for t in self.transforms:
-            img, mask, bbx = t(img, mask, bbx)
-        return img, mask, bbx
+                img, mask, hm_mask, bboxes = t(img, mask, hm_mask, bboxes)
+            return img, mask, hm_mask, bboxes
+
 
 class RandomHorizontallyFlip(object):
-    def __call__(self, img, mask, bbx=None):
+    def __call__(self, img, mask, hm_mask, bboxes=None):
         if random.random() < 0.5:
-            if bbx is None:
-                return img.transpose(Image.FLIP_LEFT_RIGHT), mask.transpose(Image.FLIP_LEFT_RIGHT)
+            img, mask, hm_mask = img.transpose(Image.FLIP_LEFT_RIGHT), mask.transpose(Image.FLIP_LEFT_RIGHT), \
+                                 hm_mask.transpose(Image.FLIP_LEFT_RIGHT)
             w, h = img.size
-            xmin = w - bbx[:,3]
-            xmax = w - bbx[:,1]
-            bbx[:,1] = xmin
-            bbx[:,3] = xmax
-            return img.transpose(Image.FLIP_LEFT_RIGHT), mask.transpose(Image.FLIP_LEFT_RIGHT), bbx
-        if bbx is None:
-            return img, mask
-        return img, mask, bbx
+
+            box_w = bboxes[:, 2] - bboxes[:, 0]
+            bboxes[:, 0] = w - bboxes[:, 0] - box_w
+            bboxes[:, 2] = bboxes[:, 0] + box_w
+
+        # debug
+        #         visual_debug(img,bboxes,mask,'flip')
+
+        return img, mask, hm_mask, bboxes
+
 
 class RandomCrop(object):
     def __init__(self, size, padding=0):
@@ -42,7 +44,7 @@ class RandomCrop(object):
             self.size = size
         self.padding = padding
 
-    def __call__(self, img, mask, dst_size=None):
+    def __call__(self, img, mask, hm_mask, bboxes, dst_size=None):
         if self.padding > 0:
             img = ImageOps.expand(img, border=self.padding, fill=0)
             mask = ImageOps.expand(mask, border=self.padding, fill=0)
@@ -60,7 +62,52 @@ class RandomCrop(object):
 
         x1 = random.randint(0, w - tw)
         y1 = random.randint(0, h - th)
-        return img.crop((x1, y1, x1 + tw, y1 + th)), mask.crop((x1, y1, x1 + tw, y1 + th))
+        #         visual_debug(img,bboxes,den,'a')
+        bboxes[:, 0] -= x1
+        bboxes[:, 1] -= y1
+        bboxes[:, 2] -= x1
+        bboxes[:, 3] -= y1
+
+        # 删除x0,y0<0的框
+        remove_ixs = np.where(bboxes[:, 0] < 0)[0]
+        bboxes = np.delete(bboxes, remove_ixs, axis=0)
+        remove_ixs = np.where(bboxes[:, 1] < 0)[0]
+        bboxes = np.delete(bboxes, remove_ixs, axis=0)
+
+        # 删除x1>tw的
+        remove_ixs = np.where(bboxes[:, 2] > tw)[0]
+        bboxes = np.delete(bboxes, remove_ixs, axis=0)
+        # 删除y1>th的
+        remove_ixs = np.where(bboxes[:, 3] > th)[0]
+        bboxes = np.delete(bboxes, remove_ixs, axis=0)
+        new_img = img.crop((x1, y1, x1 + tw, y1 + th))
+
+        den = mask.crop((x1, y1, x1 + tw, y1 + th))
+        #         visual_debug(new_img,bboxes,den,'b')
+        return img.crop((x1, y1, x1 + tw, y1 + th)), mask.crop((x1, y1, x1 + tw, y1 + th)), hm_mask.crop(
+            (x1, y1, x1 + tw, y1 + th)), bboxes
+
+
+def visual_debug(img, bboxes, den, name):
+    # 框也要对应的发生改变
+
+    # 删除x0,y0小于0的框
+
+    img_a = np.array(img)
+    import cv2
+    for each in bboxes:
+        x0, y0, x1, y1 = each
+        cv2.rectangle(img_a, (int(x0), int(y0)), (int(x1), int(y1)), (0, 0, 255), 2)
+    import random
+    #     import matplotlib.pyplot as plt
+    name_seed = random.random()
+    cv2.imwrite('%s/%s.jpg' % (name, name_seed), img_a)
+    np.save('%s/%s.npy' % (name, name_seed), den)
+
+
+#     plt.imshow(img_a)
+#     plt.imshow(den,alpha=0.5)
+#     plt.savefig('%s/%s.jpg'%(name,random.random()),bbox_inches='tight', pad_inches=0, dpi=150)
 
 
 class CenterCrop(object):
@@ -78,13 +125,13 @@ class CenterCrop(object):
         return img.crop((x1, y1, x1 + tw, y1 + th)), mask.crop((x1, y1, x1 + tw, y1 + th))
 
 
-
 class FreeScale(object):
     def __init__(self, size):
         self.size = size  # (h, w)
 
     def __call__(self, img, mask):
-        return img.resize((self.size[1], self.size[0]), Image.BILINEAR), mask.resize((self.size[1], self.size[0]), Image.NEAREST)
+        return img.resize((self.size[1], self.size[0]), Image.BILINEAR), mask.resize((self.size[1], self.size[0]),
+                                                                                     Image.NEAREST)
 
 
 class ScaleDown(object):
@@ -92,7 +139,7 @@ class ScaleDown(object):
         self.size = size  # (h, w)
 
     def __call__(self, mask):
-        return  mask.resize((self.size[1]/cfg.TRAIN.DOWNRATE, self.size[0]/cfg.TRAIN.DOWNRATE), Image.NEAREST)
+        return mask.resize((self.size[1] / cfg.TRAIN.DOWNRATE, self.size[0] / cfg.TRAIN.DOWNRATE), Image.NEAREST)
 
 
 class Scale(object):
@@ -101,8 +148,8 @@ class Scale(object):
 
     def __call__(self, img, mask):
         if img.size != mask.size:
-            print( img.size )
-            print( mask.size )          
+            print(img.size)
+            print(mask.size)
         assert img.size == mask.size
         w, h = img.size
         if (w <= h and w == self.size) or (h <= w and h == self.size):
@@ -142,8 +189,9 @@ class LabelNormalize(object):
     def __call__(self, tensor):
         # tensor = 1./(tensor+self.para).log()
         tensor = torch.from_numpy(np.array(tensor))
-        tensor = tensor*self.para
+        tensor = tensor * self.para
         return tensor
+
 
 class GTScaleDown(object):
     def __init__(self, factor=8):
@@ -151,8 +199,8 @@ class GTScaleDown(object):
 
     def __call__(self, img):
         w, h = img.size
-        if self.factor==1:
+        if self.factor == 1:
             return img
-        tmp = np.array(img.resize((w//self.factor, h//self.factor), Image.BICUBIC))*self.factor*self.factor
+        tmp = np.array(img.resize((w // self.factor, h // self.factor), Image.BICUBIC)) * self.factor * self.factor
         img = Image.fromarray(tmp)
         return img

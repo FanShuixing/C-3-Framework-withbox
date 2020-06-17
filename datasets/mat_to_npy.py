@@ -6,11 +6,11 @@ import numpy as np
 import math
 import json
 
-standard_size=[576,768];
+standard_size=[768,1024];
 
 def get_density(img_dir,det_gt_dir,w=768,h=576):
 
-    mat=get_mat(det_gt_dir)
+    mat=get_mat(det_gt_dir,w,h)
     im = cv2.imread(img_dir, cv2.IMREAD_GRAYSCALE)
     annPoints = mat['image_info']['location']
 
