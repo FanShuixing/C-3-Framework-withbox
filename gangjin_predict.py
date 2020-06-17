@@ -87,7 +87,7 @@ def test(args, file_list, model_path):
 
             with torch.no_grad():
                 img = Variable(img[None, :, :, :]).cuda()
-                pred_map, pred_wh, pred_offset = net.test_forward(img)
+                pred_map, pred_wh,pred_offset = net.test_forward(img)
 
             sio.savemat(args.output_dir + '/pred/' + name_no_suffix + '.mat',
                         {'data': pred_map.squeeze().cpu().numpy() / 100.})

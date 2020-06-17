@@ -32,14 +32,14 @@ class SHHB(data.Dataset):
 
     def __getitem__(self, index):
         fname = self.data_files[index]
-        img, den,wh,ind,mask,hm_mask = self.read_image_and_gt(fname)
+        img, den,wh,ind,mask,hm_mask,reg = self.read_image_and_gt(fname)
         if self.main_transform is not None:
             img, den = self.main_transform(img, den)
         if self.img_transform is not None:
             img = self.img_transform(img)
         if self.gt_transform is not None:
             den = self.gt_transform(den)
-        return img, den,wh,ind,mask,hm_mask
+        return img, den,wh,ind,mask,hm_mask,reg
 
     def __len__(self):
         return self.num_samples
@@ -58,6 +58,7 @@ class SHHB(data.Dataset):
         wh = np.zeros((self.max_objs, 2), dtype=np.float32)
         ind = np.zeros((self.max_objs), dtype=np.int64)
         reg_mask = np.zeros((self.max_objs), dtype=np.uint8)
+        reg = np.zeros((self.max_objs, 2), dtype=np.float32)
 
         with open(os.path.join(self.root_dir,fname[0])) as fr:
             info=json.load(fr)
@@ -78,13 +79,14 @@ class SHHB(data.Dataset):
                   [(x0 + x1) / 2, (y0 + y1) / 2], dtype=np.float32)
                 ct_int = ct.astype(np.int32)
                 ind[k] = ct_int[1] * output_w + ct_int[0]
+                reg[k]=ct-ct_int
                 if ind[k]>576*768:
                     print(ct_int[1],ct_int[0])
                     print('*'*100,'error')
                 #reg_mask
                 reg_mask[k] = 1
 
-        return img, den,wh,ind,reg_mask,hm_mask
+        return img, den,wh,ind,reg_mask,hm_mask,reg
 
     def get_num_samples(self):
         return self.num_samples
