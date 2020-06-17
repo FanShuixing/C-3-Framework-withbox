@@ -83,7 +83,7 @@ def test(args, file_list, model_path):
 
         with torch.no_grad():
             img = Variable(img[None, :, :, :]).cuda()
-            pred_map, pred_wh = net.test_forward(img)
+            pred_map, pred_wh,pred_offset = net.test_forward(img)
 
         sio.savemat(args.output_dir + '/pred/' + name_no_suffix + '.mat',
                     {'data': pred_map.squeeze().cpu().numpy() / 100.})
@@ -95,7 +95,11 @@ def test(args, file_list, model_path):
         K = inds.shape[1]
 
         wh = _transpose_and_gather_feat(pred_wh, torch.from_numpy(inds).cuda())
-        #         wh=get_wh(pred_wh,inds)
+
+        # 偏移
+        offset = _transpose_and_gather_feat(pred_offset, torch.from_numpy(inds).cuda()).cpu().numpy()
+        xs = np.add(xs, offset[:, :, 0:1])
+        ys = np.add(ys, offset[:, :, 0:1])
 
         # 用tensor计算这一步的时候会算错，计算错误
         wh = wh.cpu().numpy()

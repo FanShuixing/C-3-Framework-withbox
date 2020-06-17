@@ -114,7 +114,7 @@ def test(args, file_list, model_path):
             ori_h, ori_w, _ = img_show.shape
             #             img_show = cv2.resize(img_show, (768, 576))
             bboxes_json = []
-            for i in range(inds.shape[0]):
+            for i in range(inds.shape[1]):
                 tmp = {}
                 x0 = int(bboxes[0, i, 0].item())
                 y0 = int(bboxes[0, i, 1].item())
