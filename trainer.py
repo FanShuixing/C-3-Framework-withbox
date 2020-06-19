@@ -128,7 +128,7 @@ class Trainer():
         mses = AverageMeter()
 
         for vi, data in enumerate(self.val_loader, 0):
-            img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask = data
+            img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask,gt_offset = data
 
             with torch.no_grad():
                 img = Variable(img).cuda()
@@ -137,8 +137,9 @@ class Trainer():
                 gt_ind = Variable(gt_ind).cuda()
                 gt_reg_mask = Variable(gt_reg_mask).cuda()
                 gt_hm_mask=Variable(gt_hm_mask).cuda()
+                gt_offset = Variable(gt_offset).cuda()
 
-                pred_map = self.net.forward(img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask)
+                pred_map = self.net.forward(img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask,gt_offset)
 
                 pred_map = pred_map.data.cpu().numpy()
                 gt_map = gt_map.data.cpu().numpy()
