@@ -88,16 +88,17 @@ class Trainer():
         self.net.train()
         for i, data in enumerate(self.train_loader, 0):
             self.timer['iter time'].tic()
-            img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask = data
+            img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask,gt_offset = data
             img = Variable(img).cuda()
             gt_map = Variable(gt_map).cuda()
             gt_wh = Variable(gt_wh).cuda()
             gt_ind = Variable(gt_ind).cuda()
             gt_reg_mask = Variable(gt_reg_mask).cuda()
             gt_hm_mask = Variable(gt_hm_mask).cuda()
+            gt_offset = Variable(gt_offset).cuda()
 
             self.optimizer.zero_grad()
-            pred_map = self.net(img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask)
+            pred_map = self.net(img, gt_map, gt_wh, gt_ind, gt_reg_mask,gt_hm_mask,gt_offset)
             hm_loss, wh_loss, all_loss = self.net.loss
             all_loss.backward()
             self.optimizer.step()

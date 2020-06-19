@@ -47,6 +47,8 @@ class Res50(nn.Module):
         self.latter4 = nn.Conv2d(256, 128, kernel_size=1, stride=1, padding=0)
         self.latter5 = nn.Conv2d(64, 128, kernel_size=1, stride=1, padding=0)
         self.wh_layer = nn.Conv2d(128, 2, kernel_size=1, stride=1, padding=0)
+        self.offset_layer = nn.Conv2d(128, 2, kernel_size=1, stride=1, padding=0)
+
 
     def _upsample_add(self, x, y):
         _, _, H, W = y.size()
@@ -75,9 +77,10 @@ class Res50(nn.Module):
         hm = F.upsample(hm, scale_factor=4)
         wh = self.wh_layer(p2)
         wh = F.upsample(wh, scale_factor=4)  # [bs,2,128,128]
-        #         print(wh.shape)
 
-        return hm, wh
+        offset=self.offset_layer(p2)
+        offset=F.upsample(offset,scale_factor=4)
+        return hm, wh,offset
 
     def _initialize_weights(self):
         for m in self.modules():

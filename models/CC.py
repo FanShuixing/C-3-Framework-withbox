@@ -36,8 +36,8 @@ class CrowdCounter(nn.Module):
     def loss(self):
         return self.loss_mse, self.wh_loss, self.all_loss
 
-    def forward(self, img, gt_map, gt_wh, gt_ind, gt_reg_mask, gt_hm_mask):
-        density_map, pre_wh = self.CCN(img)
+    def forward(self, img, gt_map, gt_wh, gt_ind, gt_reg_mask, gt_hm_mask,gt_offset):
+        density_map, pre_wh,pred_offset = self.CCN(img)
         # 最初只返回这个loss
         #self.loss_mse = self.build_loss(density_map.squeeze(), gt_map.squeeze())
         # 修改hm loss
@@ -47,7 +47,10 @@ class CrowdCounter(nn.Module):
         # wh_loss
         self.crit_wh = RegL1Loss()
         self.wh_loss = self.crit_wh(pre_wh, gt_ind, gt_wh, gt_reg_mask)
-        self.all_loss = 1 * self.loss_mse + 0.0001 * self.wh_loss
+        
+        #offset_loss
+        self.reg_loss = self.crit_wh(pred_offset, gt_ind, gt_offset, gt_reg_mask)
+        self.all_loss = 1 * self.loss_mse + 0.001 * self.wh_loss+0.01*self.reg_loss
 
         return density_map
 
