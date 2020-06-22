@@ -196,11 +196,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--root_dir", default='/input1/normal', help='root dir')
     parser.add_argument("--model_path",
-                        default='/output/tf_dir/04-03_10-19_SHHB_Res101_1e-05/all_ep_61_mae_0.9_mse_1.8.pth',
                         help='model path for predict')
     parser.add_argument('--output_dir', default='../result_16_normal', help='save output')
     parser.add_argument('--have_gt', default=False)
     parser.add_argument('--image_shape', default=(576, 768), help='the image shape when training')
     parser.add_argument('--meta_name', default='normal_v16')
     args = parser.parse_args()
+    print(args.model_path)
     main(args)
