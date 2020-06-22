@@ -9,7 +9,7 @@ from misc.utils import *
 
 import pdb
 
-model_path = '../PyTorch_Pretrained/resnet101-5d3b4d8f.pth'
+model_path = './resnet101-5d3b4d8f.pth'
 
 
 class Res101(nn.Module):
@@ -21,12 +21,12 @@ class Res101(nn.Module):
 
         # initialize_weights(self.modules())
 
-        self.res = models.resnet101(pretrained=pretrained)
-        # pre_wts = torch.load(model_path)
-        # res.load_state_dict(pre_wts)
-        #         self.frontend = nn.Sequential(
-        #             res.conv1, res.bn1, res.relu, res.maxpool, res.layer1, res.layer2
-        #         )
+        self.res = models.resnet101(pretrained=False)
+        pre_wts = torch.load(model_path)
+        self.res.load_state_dict(pre_wts)
+        self.frontend = nn.Sequential(
+                    self.res.conv1, self.res.bn1, self.res.relu, self.res.maxpool, self.res.layer1, self.res.layer2
+                 )
         self.own_reslayer_3 = make_res_layer(Bottleneck, 256, 23, stride=1)
         self.own_reslayer_3.load_state_dict(self.res.layer3.state_dict())
         self.own = nn.Sequential(
