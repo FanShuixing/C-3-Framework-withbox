@@ -69,8 +69,8 @@ class CrowdCounter(nn.Module):
         return loss_mse
 
     def test_forward(self, img):
-        density_map, pred_wh = self.CCN(img)
-        return density_map, pred_wh
+        density_map, pred_wh,pred_offset = self.CCN(img)
+        return density_map, pred_wh,pred_offset
 
 
 class RegL1Loss(nn.Module):
