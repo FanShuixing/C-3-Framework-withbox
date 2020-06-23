@@ -60,15 +60,16 @@ elif net in ['PCCNet']:
 #------------Start Training------------
 parser = argparse.ArgumentParser()
 parser.add_argument('--lr', default='1e-5')
-parser.add_argument('--optimizer', default='adam')
-parser.add_argument('--wh_decay',default=0.001)
-parser.add_argument('--offset_decay',default=0.1)
-parser.add_argument('--pos_decay',default=0.1)
+parser.add_argument('--optimizer')
+parser.add_argument('--wh_decay')
+parser.add_argument('--offset_decay')
+parser.add_argument('--pos_decay')
 
 args = parser.parse_args()
 cfg_data.LR=args.lr
 cfg_data.OPTIMIZER=args.optimizer
 
+print(args.optimizer,args.offset_decay,args.pos_decay)
 pwd = os.path.split(os.path.realpath(__file__))[0]
 cc_trainer = Trainer(loading_data,cfg_data,pwd,args)
 cc_trainer.forward()

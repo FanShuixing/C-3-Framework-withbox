@@ -1,6 +1,6 @@
 
 #训练
-python train.py
+python train.py $1 $2 $3 $4
 
 #找到model_path路径
 for file in `ls /output/tf_dir`;
