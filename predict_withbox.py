@@ -40,8 +40,8 @@ pil_to_tensor = standard_transforms.ToTensor()
 
 
 def main(args):
-    with open(os.path.join(args.root_dir,'val_csv', args.meta_name + '.csv')) as fr:
-        file_list = pd.read_csv(fr).values
+    with open(os.path.join(args.root_dir, args.meta_name + '.csv')) as fr:
+        file_list = pd.read_csv(fr).values[:3]
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
     test(args, file_list, args.model_path)
