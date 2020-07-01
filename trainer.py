@@ -12,7 +12,7 @@ import pdb
 
 
 class Trainer():
-    def __init__(self, dataloader, cfg_data, pwd):
+    def __init__(self, dataloader, cfg_data, pwd,args):
 
         self.cfg_data = cfg_data
 
@@ -22,7 +22,7 @@ class Trainer():
         self.pwd = pwd
 
         self.net_name = cfg.NET
-        self.net = CrowdCounter(cfg.GPU_ID, self.net_name).cuda()
+        self.net = CrowdCounter(cfg.GPU_ID, self.net_name,args).cuda()
         self.optimizer = optim.Adam(self.net.CCN.parameters(), lr=cfg.LR, weight_decay=1e-4)
         # self.optimizer = optim.SGD(self.net.parameters(), cfg.LR, momentum=0.95,weight_decay=5e-4)
         # self.scheduler = StepLR(self.optimizer, step_size=cfg.NUM_EPOCH_LR_DECAY, gamma=cfg.LR_DECAY)

@@ -342,6 +342,15 @@ for metricsPerClass in detections:
     F1_score = 2 * P * R / (P + R)
     print('precision:', P, 'recall:', R)
     print('F1_score:', F1_score)
+    with open('result_report.txt','a+') as fr:
+        fr.write('*'*10+detFolder+'*'*10)
+        fr.write('\n')
+        fr.write('total_TP:%s'%total_TP+'total_FP:%s'%total_FP+'totalPositives:%s'%totalPositives)
+        fr.write('\n')
+        fr.write('precision:%s'%P+'recall:%s'%R)
+        fr.write('\n')
+        fr.write('F1_score:%s'%F1_score)
+        fr.write('\n\n')
 
     if totalPositives > 0:
         validClasses = validClasses + 1

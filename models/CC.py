@@ -5,7 +5,7 @@ import pdb
 
 
 class CrowdCounter(nn.Module):
-    def __init__(self, gpus, model_name):
+    def __init__(self, gpus, model_name,args=None):
         super(CrowdCounter, self).__init__()
 
         if model_name == 'AlexNet':
@@ -31,6 +31,11 @@ class CrowdCounter(nn.Module):
         else:
             self.CCN = self.CCN.cuda()
         self.loss_mse_fn = nn.MSELoss().cuda()
+        
+        if args!=None:
+            self.wh_decay=float(args.wh_decay)
+            self.offset_decay=float(args.offset_decay)
+            self.pos_decay=float(args.pos_decay)
 
     @property
     def loss(self):
@@ -50,7 +55,7 @@ class CrowdCounter(nn.Module):
         
         #offset_loss
         self.reg_loss = self.crit_wh(pred_offset, gt_ind, gt_offset, gt_reg_mask)
-        self.all_loss = 1 * self.loss_mse + 0.001 * self.wh_loss+0.01*self.reg_loss
+        self.all_loss = 1 * self.loss_mse + self.wh_decay* self.wh_loss+self.offset_decay*self.reg_loss
 
         return density_map
 
@@ -64,7 +69,7 @@ class CrowdCounter(nn.Module):
         loss_mse_pos = loss_mse_pos / (nums + 1e-4)
 
         loss_mse_ori = F.mse_loss(density_map, gt_data, size_average=True)
-        loss_mse = loss_mse_ori + 0.1 * loss_mse_pos
+        loss_mse = loss_mse_ori + self.pos_decay * loss_mse_pos
 
         return loss_mse
 
