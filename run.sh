@@ -26,7 +26,7 @@ done
 #generate counting error
 for file in $(ls /output/result);
 do
-    python gener_wrong.py --meta_file $file --root_dir /output/result --output_dir /output/wrong
+    python gener_wrong.py --meta_file $file --root_dir /output/result --output_dir /output/wrong  --model_path model_path
 done
 
 #compute f1-score

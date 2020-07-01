@@ -18,6 +18,8 @@ def main(args):
     diff = abs(info[:, 2] - info[:, 3])
     idx_list = np.where(diff > 0)
     with open('result_report.txt','a+') as fr:
+        fr.write(args.model_path)
+        fr.write('\n\n')
         for idx in idx_list[0]:
             name = info[idx][0].split('/')[-1].replace('.jpg', '')
             ori = os.path.join(args.root_dir, args.meta_file,
@@ -50,6 +52,7 @@ if __name__ == '__main__':
     parser.add_argument("--root_dir", help='the path to save all box predictions')
     parser.add_argument('--output_dir', help='save the output images of wrong nums large than 1')
     parser.add_argument('--meta_file', help='')
+    parser.add_argument('--model_path')
 
     args = parser.parse_args()
     main(args)
