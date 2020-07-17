@@ -1,7 +1,15 @@
-### Prepare Data
-#2
-#3
-原始数据为目标检测数据，将目标检测数据转换为人群密度计数数据  
+项目简介：
+此项目基于C-3-Framework的计数框架，在其之上修改网络结构以支持输出每个物体的框(原来的框架是计数的框架，只支持输出计数的数量)。下面会以简单的流程介绍整个项目。   
+训练过程       
+- 数据准备
+- 训练
+- 测试  
+创新点    
+- 网络结构更新
+- 添加后处理
+
+### 数据准备
+原始数据为目标检测格式的数据，放置形式如下
 ```
 |--image
    |--xxx.jpg
@@ -12,22 +20,6 @@
 |--train_meta.csv
 |--val_meta.csv
 ```
-```
-#首先将数据转换为mat格式
-python detection_to_mat.py
-```
-~~然后将数据通过matlab转换为模型需要的csv格式的数据,在matlab中运行mat_to_csv.py,需要用到datasets/get_density_map_gaussian.m。mat_to_csv.m中需要修改一下变量，Line3~Line6。~~用python mat_to_npy.py将mat数据转换成npy格式，以供模型处理。在实际运行中，有些数据是有问题的，生成的csv维度不等于想要的，所以筛除掉这些不符合条件的，将符合条件的写到train.txt/val.txt中 ，所以最终生成的数据格式为
-```
-|---images
-    |--xxx.jpg
-    |--xxx.jpg
-|--train_label
-    |--xxx.npy
-|--val_label
-    |--xxx.npy
-|--train.txt
-|--val.txt
-```
 ### Train
 ```
 python train.py
@@ -35,5 +27,14 @@ python train.py
 
 ### Test
 ```
-python test.py
+./predict.sh
 ```
+
+
+### 网络结构修改
+
+### 后处理
+现在网络的输出为两部分，第一个分支同计数框架一样，输出密度图，第二个分支输出框，通过密度图得到关键点的坐标，将关键点的坐标转换为索引，然后根据索引找到对应关键点的框。
+目标：根据密度图找到关键点的坐标。
+图片
+密度图如上图所示，要得到每一个高亮点的坐标。最直观
