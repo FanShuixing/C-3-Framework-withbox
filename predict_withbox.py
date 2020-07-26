@@ -22,7 +22,7 @@ import torch.nn as nn
 from datasets.mat_to_npy import get_density
 
 '''
-predict_withbox.py的另外一个版本，目的是为了将不同类型的数据进行统计
+验证集
 '''
 torch.cuda.set_device(0)
 torch.backends.cudnn.benchmark = True
@@ -41,7 +41,7 @@ pil_to_tensor = standard_transforms.ToTensor()
 
 def main(args):
     with open(os.path.join(args.root_dir, args.meta_name + '.csv')) as fr:
-        file_list = pd.read_csv(fr).values[:3]
+        file_list = pd.read_csv(fr).values
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
     test(args, file_list, args.model_path)
@@ -108,6 +108,8 @@ def test(args, file_list, model_path):
                                  xs + wh[..., 0:1] / 2,
                                  ys + wh[..., 1:2] / 2], axis=2)
         img_show = cv2.imread(imgname)[:, :, ::-1]
+        ori_h, ori_w, _ = img_show.shape
+
         img_show = cv2.resize(img_show, (768, 576))
         bboxes_json = []
         for i in range(K):
@@ -117,13 +119,16 @@ def test(args, file_list, model_path):
             x1 = int(bboxes[0, i, 2].item())
             y1 = int(bboxes[0, i, 3].item())
             cv2.rectangle(img_show, (x0, y0), (x1, y1), (255, 0, 0), 2)
-            #             cv2.rectangle(img_show, (xs[0, i, 0], ys[0, i, 0]), (xs[0, i, 0] + 5, ys[0, i, 0] + 5), (255, 0, 0), 2)
             # 添加json输出
-            tmp['x_min'] = x0 / 768
-            tmp['x_max'] = x1 / 768
-            tmp['y_min'] = y0 / 576
-            tmp['y_max'] = y1 / 576
-            tmp['label'] = 'mucai'
+            ori_x0 = bboxes[0, i, 0].item() / 768 
+            ori_y0 = bboxes[0, i, 1].item() / 576 
+            ori_x1 = bboxes[0, i, 2].item() / 768 
+            ori_y1 = bboxes[0, i, 3].item() / 576 
+            tmp['x_min']=ori_x0
+            tmp['x_max']=ori_x1
+            tmp['y_min']=ori_y0
+            tmp['y_max']=ori_y1
+            tmp['label'] = 'GangJin'
             tmp['confidence'] = 1.0
             bboxes_json.append(tmp)
         # 给图像画上gt的框
@@ -138,7 +143,7 @@ def test(args, file_list, model_path):
 
                     x_center = int((x_max - x_min) / 2 + x_min)
                     y_center = int((y_max - y_min) / 2 + y_min)
-                    cv2.rectangle(img_show, (x_center, y_center), (x_center + 5, y_center + 5), (0, 0, 255), 2)
+#                     cv2.rectangle(img_show, (x_center, y_center), (x_center + 5, y_center + 5), (0, 0, 255), 2)
         pred_map = pred_map.cpu().data.numpy()[0, 0, :, :]
 
         pred = np.sum(pred_map) / 100.0

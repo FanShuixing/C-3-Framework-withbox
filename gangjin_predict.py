@@ -22,7 +22,7 @@ import torch.nn as nn
 from datasets.mat_to_npy import get_density
 
 '''
-predict_withbox.py的另外一个版本，目的是为了将不同类型的数据进行统计
+预测:对测试集进行预测，并且输出测试的文件
 '''
 torch.cuda.set_device(0)
 torch.backends.cudnn.benchmark = True
@@ -40,13 +40,7 @@ pil_to_tensor = standard_transforms.ToTensor()
 
 
 def main(args):
-    #     with open(os.path.join(args.root_dir, args.meta_name + '.csv')) as fr:
-    #         file_list = pd.read_csv(fr).values
-    #     file_list=[]
-    #     with open('equal.txt') as fr:
-    #         info=fr.readlines()
-    #         for each in info:
-    #             file_list.append(each.strip()+'.jpg')
+
     file_list = os.listdir(args.root_dir)
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -95,7 +89,6 @@ def test(args, file_list, model_path):
             #             heat = _nms(pred_map / 100.)
             batch = 1
             inds, ys, xs = get_topk(pred_map)
-            #             print(xs)
             K = inds.shape[1]
 
             wh = _transpose_and_gather_feat(pred_wh, torch.from_numpy(inds).cuda())
