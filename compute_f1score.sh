@@ -1,6 +1,6 @@
 
 # val
-for type in val_noslope2 val_slope2;
+for type in val_mask;
 do
     python pascalvoc.py  --gtfolder /input0 --detfolder /output/result/$type --threshold 0.7
 done
