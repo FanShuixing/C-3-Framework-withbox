@@ -109,6 +109,8 @@ def test(args, file_list, model_path):
                                  ys + wh[..., 1:2] / 2], axis=2)
         img_show = cv2.imread(imgname)[:, :, ::-1]
         img_show = cv2.resize(img_show, (768, 576))
+        img_show2=cv2.imread(imgname)[:,:,::-1]
+        img_show2=cv2.resize(img_show2,(768,576))
         bboxes_json = []
         for i in range(K):
             tmp = {}
@@ -138,7 +140,7 @@ def test(args, file_list, model_path):
 
                     x_center = int((x_max - x_min) / 2 + x_min)
                     y_center = int((y_max - y_min) / 2 + y_min)
-                    cv2.rectangle(img_show, (x_center, y_center), (x_center + 5, y_center + 5), (0, 0, 255), 2)
+#                     cv2.rectangle(img_show, (x_center, y_center), (x_center + 5, y_center + 5), (0, 0, 255), 2)
         pred_map = pred_map.cpu().data.numpy()[0, 0, :, :]
 
         pred = np.sum(pred_map) / 100.0
@@ -146,8 +148,13 @@ def test(args, file_list, model_path):
 
         pred_frame = plt.gca()
 
+#         plt.imshow(img_show)
+        img_show=cv2.putText(img_show, 'GT:'+str(round(gt)), (25, 25), cv2.FONT_HERSHEY_SIMPLEX,\
+                                1, (255, 255, 255), 3, cv2.LINE_AA, False)
+# img=cv2.resize(img,(512,612))
+        img_show=cv2.putText(img_show, 'Pred:'+str(round(K)), (25, 60), cv2.FONT_HERSHEY_SIMPLEX,\
+                                1, (255, 255, 255), 3, cv2.LINE_AA, False)
         plt.imshow(img_show)
-        plt.imshow(pred_map, alpha=0.5)
         pred_frame.axes.get_yaxis().set_visible(False)
         pred_frame.axes.get_xaxis().set_visible(False)
         pred_frame.spines['top'].set_visible(False)
@@ -164,6 +171,22 @@ def test(args, file_list, model_path):
                         bbox_inches='tight', pad_inches=0, dpi=150)
 
         plt.close()
+        
+        #
+        pred_frame = plt.gca()
+        plt.imshow(img_show2)
+        plt.imshow(pred_map, alpha=0.5)
+        
+        pred_frame.axes.get_yaxis().set_visible(False)
+        pred_frame.axes.get_xaxis().set_visible(False)
+        pred_frame.spines['top'].set_visible(False)
+        pred_frame.spines['bottom'].set_visible(False)
+        pred_frame.spines['left'].set_visible(False)
+        pred_frame.spines['right'].set_visible(False)
+        plt.savefig(save_img_dir + '/' + name_no_suffix + '_pred_' + str(round(pred)) + '_box_' + str(K) +"dmap" +'.png', \
+                        bbox_inches='tight', pad_inches=0, dpi=150)        
+        plt.close()
+        
 
         if args.have_gt:
             writer.writerow([imgname, round(pred), round(gt), K])
