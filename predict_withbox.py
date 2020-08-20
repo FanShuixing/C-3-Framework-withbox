@@ -40,7 +40,7 @@ pil_to_tensor = standard_transforms.ToTensor()
 
 
 def main(args):
-    with open(os.path.join(args.root_dir,'val_csv', args.meta_name + '.csv')) as fr:
+    with open(os.path.join(args.root_dir, args.meta_name + '.csv')) as fr:
         file_list = pd.read_csv(fr).values
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -123,7 +123,7 @@ def test(args, file_list, model_path):
             tmp['x_max'] = x1 / 768
             tmp['y_min'] = y0 / 576
             tmp['y_max'] = y1 / 576
-            tmp['label'] = 'mucai'
+            tmp['label'] = 'GangJin'
             tmp['confidence'] = 1.0
             bboxes_json.append(tmp)
         # 给图像画上gt的框
