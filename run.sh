@@ -1,7 +1,7 @@
 #训练
 #./run.sh --optimizer=adam --wh_decay=0.01 --offset_decay=0.1 --pos_decay=0.1
 # python train.py $1 $2 $3 $4
-# python train.py
+python train.py
 
 #找到model_path路径
 for file in `ls /output/tf_dir`;
