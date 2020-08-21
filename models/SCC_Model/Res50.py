@@ -30,23 +30,24 @@ class Res50(nn.Module):
         self.own_reslayer_3 = make_res_layer(Bottleneck, 256, 6, stride=1)
         self.own_reslayer_3.load_state_dict(self.res.layer3.state_dict())
         self.own = nn.Sequential(
-            nn.Conv2d(1024, 2048, kernel_size=3, stride=2, bias=False,padding=1),
+            nn.Conv2d(1024, 2048, kernel_size=3, stride=2, bias=False, padding=1),
             nn.BatchNorm2d(2048),
             nn.ReLU(inplace=True),
         )
         # 修改下采样最后一层
         downsample = nn.Sequential(
             nn.Conv2d(1024, 2048,
-                      kernel_size=3, stride=2, bias=False,padding=1),
+                      kernel_size=3, stride=2, bias=False, padding=1),
             nn.BatchNorm2d(2048),
         )
-        self.res4=Bottleneck(1024, 512, stride=2, downsample=downsample)
+        self.res4 = Bottleneck(1024, 512, stride=2, downsample=downsample)
         self.latter1 = nn.Conv2d(2048, 128, kernel_size=1, stride=1, padding=0)
         self.latter2 = nn.Conv2d(1024, 128, kernel_size=1, stride=1, padding=0)
         self.latter3 = nn.Conv2d(512, 128, kernel_size=1, stride=1, padding=0)
         self.latter4 = nn.Conv2d(256, 128, kernel_size=1, stride=1, padding=0)
         self.latter5 = nn.Conv2d(64, 128, kernel_size=1, stride=1, padding=0)
         self.wh_layer = nn.Conv2d(128, 2, kernel_size=1, stride=1, padding=0)
+        self.reg_layer = nn.Conv2d(128, 2, kernel_size=1, stride=1, padding=0)
 
     def _upsample_add(self, x, y):
         _, _, H, W = y.size()
@@ -64,7 +65,7 @@ class Res50(nn.Module):
         x5 = self.own_reslayer_3(x4)
 
         # x6 = self.own(x5)
-        x6=self.res4(x5)
+        x6 = self.res4(x5)
         p6 = self.latter1(x6)
         p5 = self._upsample_add(p6, self.latter2(x5))
         p4 = p5 + self.latter3(x4)
@@ -75,9 +76,11 @@ class Res50(nn.Module):
         hm = F.upsample(hm, scale_factor=4)
         wh = self.wh_layer(p2)
         wh = F.upsample(wh, scale_factor=4)  # [bs,2,128,128]
-        #         print(wh.shape)
 
-        return hm, wh
+        offset = self.reg_layer(p2)
+        offset = F.upsample(offset, scale_factor=4)  # [bs,2,128,128]
+
+        return hm, wh, offset
 
     def _initialize_weights(self):
         for m in self.modules():
