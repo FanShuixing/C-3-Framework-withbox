@@ -30,7 +30,7 @@ class Res101(nn.Module):
         self.own_reslayer_3 = make_res_layer(Bottleneck, 256, 23, stride=1)
         self.own_reslayer_3.load_state_dict(self.res.layer3.state_dict())
         self.own = nn.Sequential(
-            nn.Conv2d(1024, 2048, kernel_size=3, stride=2, bias=False),
+            nn.Conv2d(1024, 2048, kernel_size=3, stride=2, bias=False,padding=1),
             nn.BatchNorm2d(2048),
             nn.ReLU(inplace=True),
         )
